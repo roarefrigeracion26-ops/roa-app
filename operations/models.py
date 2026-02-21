@@ -56,4 +56,4 @@ class RegistroActividad(models.Model):
 
     def marcar_cerrado(self):
         self.cerrado = True
-        self.save(update_fields=['cerrado', 'hora_fin'])
+        self.save()
