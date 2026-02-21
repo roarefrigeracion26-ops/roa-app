@@ -8,23 +8,55 @@
     <form method="post">
       {% csrf_token %}
       <div class="card mb-3">
+        <div class="card-header">Corriente (A) por compresor</div>
         <div class="card-body">
           <div class="row g-2">
-            <div class="col-6 col-md-4"><label class="form-label small">Presión succión (psi)</label>{{ form.presion_succion }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Presión descarga (psi)</label>{{ form.presion_descarga }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Temp. succión (°C)</label>{{ form.temp_succion }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Temp. descarga (°C)</label>{{ form.temp_descarga }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Set-point (°C)</label>{{ form.setpoint_actual }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Amperaje L1 (A)</label>{{ form.amperaje_linea_1 }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Amperaje L2 (A)</label>{{ form.amperaje_linea_2 }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Amperaje L3 (A)</label>{{ form.amperaje_linea_3 }}</div>
+            {% for field in form %}
+            {% if 'corriente_compresor_' in field.name %}
+            <div class="col-6 col-md-4 col-lg-3">
+              <label class="form-label small">{{ field.label }}</label>
+              {{ field }}
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% if not registro.rack.total_compresores %}
+            <div class="col-12 text-muted small">Este rack no tiene compresores definidos. Defina cantidad en media/baja
+              en el admin.</div>
+            {% endif %}
           </div>
-          <div class="mt-2"><label class="form-label small">Notas de entrada</label>{{ form.observaciones_entrada }}</div>
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">Presiones</div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-12 col-md-6 col-lg-4">
+              <label class="form-label small">Presión succión media temperatura (psi)</label>
+              {{ form.presion_succion_media }}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <label class="form-label small">Presión succión baja temperatura (psi)</label>
+              {{ form.presion_succion_baja }}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <label class="form-label small">Presión descarga (psi)</label>
+              {{ form.presion_descarga }}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <label class="form-label small">Presión entrada condensación (psi)</label>
+              {{ form.presion_entrada_condensacion }}
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <label class="form-label small">Presión salida condensación (psi)</label>
+              {{ form.presion_salida_condensacion }}
+            </div>
+          </div>
         </div>
       </div>
       <button type="submit" class="btn btn-primary">Guardar y continuar a cierre</button>
     </form>
-    <a href="{% url 'operations:checkout' registro_id=registro.pk %}" class="btn btn-link mt-2">Ir directo a cierre (sin guardar entrada)</a>
+    <a href="{% url 'operations:checkout' registro_id=registro.pk %}" class="btn btn-link mt-2">Ir directo a cierre (sin
+      guardar entrada)</a>
   </div>
 </div>
 {% endblock %}

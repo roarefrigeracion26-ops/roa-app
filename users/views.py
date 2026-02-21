@@ -6,15 +6,16 @@ from .forms import LoginForm
 
 
 class LoginView(View):
-    """Solo técnicos activos pueden ingresar. Redirección al escáner tras éxito."""
+    """Solo usuarios activos pueden ingresar. Supervisor → reportes, Técnico → escáner."""
     def get(self, request):
         if request.user.is_authenticated:
-            return redirect('operations:scanner')
+            return redirect('analytics:dashboard' if request.user.is_supervisor else 'operations:scanner')
         return render(request, 'users/login.html', {'form': LoginForm()})
 
     def post(self, request):
         form = LoginForm(request.POST, request=request)
         if form.is_valid():
-            login(request, form.cleaned_data['user'], backend='django.contrib.auth.backends.ModelBackend')
-            return redirect('operations:scanner')
+            user = form.cleaned_data['user']
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            return redirect('analytics:dashboard' if user.is_supervisor else 'operations:scanner')
         return render(request, 'users/login.html', {'form': form})

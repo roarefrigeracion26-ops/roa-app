@@ -4,4 +4,5 @@ from . import views
 app_name = 'analytics'
 urlpatterns = [
     path('reportes/', views.DashboardView.as_view(), name='dashboard'),
+    path('reportes/exportar/', views.ExportReportesView.as_view(), name='exportar'),
 ]

@@ -8,21 +8,32 @@
     <form method="post">
       {% csrf_token %}
       <div class="card mb-3">
-        <div class="card-header">Observaciones</div>
+        <div class="card-header">Observaciones del trabajo realizado</div>
         <div class="card-body">{{ form_cierre.observaciones }}</div>
       </div>
       <div class="card mb-3">
-        <div class="card-header">Parámetros finales (para comparar)</div>
+        <div class="card-header">Parámetros finales (mismos datos para comparar)</div>
         <div class="card-body">
+          <p class="text-muted small mb-3">Complete los mismos datos que en la entrada.</p>
+          <div class="mb-3">
+            <strong class="d-block mb-2">Corriente (A) por compresor</strong>
+            <div class="row g-2">
+              {% for field in form_salida %}
+                {% if field.name.startswith='corriente_compresor_' %}
+              <div class="col-6 col-md-4 col-lg-3">
+                <label class="form-label small">{{ field.label }}</label>
+                {{ field }}
+              </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
           <div class="row g-2">
-            <div class="col-6 col-md-4"><label class="form-label small">Presión succión</label>{{ form_salida.presion_succion }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Presión descarga</label>{{ form_salida.presion_descarga }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Temp. succión</label>{{ form_salida.temp_succion }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Temp. descarga</label>{{ form_salida.temp_descarga }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Set-point</label>{{ form_salida.setpoint_actual }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Amperaje L1</label>{{ form_salida.amperaje_linea_1 }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Amperaje L2</label>{{ form_salida.amperaje_linea_2 }}</div>
-            <div class="col-6 col-md-4"><label class="form-label small">Amperaje L3</label>{{ form_salida.amperaje_linea_3 }}</div>
+            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small">Presión succión media temp (psi)</label>{{ form_salida.presion_succion_media }}</div>
+            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small">Presión succión baja temp (psi)</label>{{ form_salida.presion_succion_baja }}</div>
+            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small">Presión descarga (psi)</label>{{ form_salida.presion_descarga }}</div>
+            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small">Presión entrada condensación (psi)</label>{{ form_salida.presion_entrada_condensacion }}</div>
+            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small">Presión salida condensación (psi)</label>{{ form_salida.presion_salida_condensacion }}</div>
           </div>
         </div>
       </div>

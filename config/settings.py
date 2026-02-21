@@ -1,7 +1,6 @@
 """
 Django settings for SGMR (Sistema de Gestión de Mantenimiento de Racks).
 """
-import os
 from pathlib import Path
 
 import environ
@@ -12,8 +11,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 environ.Env.read_env(BASE_DIR / '.env')
 
 SECRET_KEY = env('SECRET_KEY', default='dev-change-me-in-production')
-DEBUG = env('DEBUG')
+DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.onrender.com'])
+# Render inyecta RENDER_EXTERNAL_HOSTNAME; añadirlo si existe
+if env('RENDER_EXTERNAL_HOSTNAME', default=''):
+    ALLOWED_HOSTS.append(env('RENDER_EXTERNAL_HOSTNAME'))
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -46,9 +48,9 @@ DATABASES = {
     'default': env.db(),
 }
 
-DATABASES['default']['OPTIONS'] = {
-    'sslmode': 'require',
-}
+# SSL solo para PostgreSQL (evita error en desarrollo con SQLite)
+if DATABASES['default'].get('ENGINE', '').endswith('postgresql'):
+    DATABASES['default'].setdefault('OPTIONS', {})['sslmode'] = 'require'
 
 AUTH_USER_MODEL = 'users.Tecnico'
 LOGIN_URL = 'users:login'
@@ -62,6 +64,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -92,4 +95,3 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-print(os.getenv('DATABASE_URL'))

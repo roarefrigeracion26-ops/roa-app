@@ -1,5 +1,7 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from users.mixins import TecnicoRequiredMixin
+from users.models import Rol
 from django.views import View
 from django.utils import timezone
 from django.http import JsonResponse
@@ -19,16 +21,18 @@ from .services import (
 from .forms import ParametrosEntradaForm, ParametrosSalidaForm, CierreForm
 
 
-class ScannerView(LoginRequiredMixin, View):
+class ScannerView(TecnicoRequiredMixin, View):
     """Pantalla que activa la cámara para leer el QR del rack."""
     def get(self, request):
         tarea_abierta = obtener_tarea_abierta(request.user)
+        racks = Rack.objects.filter(activo=True).order_by('tienda__nombre', 'ubicacion')
         return render(request, 'operations/scanner.html', {
             'tarea_abierta': tarea_abierta,
+            'racks': racks,
         })
 
 
-class FichaTecnicaView(LoginRequiredMixin, View):
+class FichaTecnicaView(TecnicoRequiredMixin, View):
     """Ficha del rack + botones Preventivo / Correctivo / Emergencia."""
     def get(self, request, rack_id):
         rack = get_object_or_404(Rack, pk=rack_id, activo=True)
@@ -45,7 +49,7 @@ class FichaTecnicaView(LoginRequiredMixin, View):
         })
 
 
-class IniciarActividadView(LoginRequiredMixin, View):
+class IniciarActividadView(TecnicoRequiredMixin, View):
     """POST: inicia cronómetro y crea registro; redirige a check-in."""
     def post(self, request, rack_id):
         rack = get_object_or_404(Rack, pk=rack_id, activo=True)
@@ -63,11 +67,11 @@ class IniciarActividadView(LoginRequiredMixin, View):
             })
 
 
-class CheckInView(LoginRequiredMixin, View):
+class CheckInView(TecnicoRequiredMixin, View):
     """Parámetros de entrada. No se puede ver check-out hasta guardar."""
     def get(self, request, registro_id):
         registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form = ParametrosEntradaForm(initial=registro.datos_entrada or None)
+        form = ParametrosEntradaForm(initial=registro.datos_entrada or None, rack=registro.rack)
         return render(request, 'operations/checkin.html', {
             'registro': registro,
             'form': form,
@@ -75,7 +79,7 @@ class CheckInView(LoginRequiredMixin, View):
 
     def post(self, request, registro_id):
         registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form = ParametrosEntradaForm(request.POST)
+        form = ParametrosEntradaForm(request.POST, rack=registro.rack)
         if form.is_valid():
             registro.datos_entrada = form.to_json()
             registro.save(update_fields=['datos_entrada'])
@@ -83,11 +87,11 @@ class CheckInView(LoginRequiredMixin, View):
         return render(request, 'operations/checkin.html', {'registro': registro, 'form': form})
 
 
-class CheckOutView(LoginRequiredMixin, View):
-    """Cierre: observaciones + parámetros finales. Al finalizar se graba hora_fin y se bloquea."""
+class CheckOutView(TecnicoRequiredMixin, View):
+    """Cierre: mismos parámetros que entrada + observaciones. Al finalizar se graba hora_fin y se bloquea."""
     def get(self, request, registro_id):
         registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form_salida = ParametrosSalidaForm(initial=registro.datos_salida or None)
+        form_salida = ParametrosSalidaForm(initial=registro.datos_salida or None, rack=registro.rack)
         form_cierre = CierreForm(initial={'observaciones': registro.observaciones})
         return render(request, 'operations/checkout.html', {
             'registro': registro,
@@ -97,7 +101,7 @@ class CheckOutView(LoginRequiredMixin, View):
 
     def post(self, request, registro_id):
         registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form_salida = ParametrosSalidaForm(request.POST)
+        form_salida = ParametrosSalidaForm(request.POST, rack=registro.rack)
         form_cierre = CierreForm(request.POST)
         if form_salida.is_valid() and form_cierre.is_valid():
             registro.datos_salida = form_salida.to_json()
@@ -118,12 +122,13 @@ class CheckOutView(LoginRequiredMixin, View):
         })
 
 
-# API para el escáner QR (frontend llama para validar y obtener ficha)
+# API para el escáner QR (solo técnicos)
 @require_GET
+@login_required
 def api_rack_qr(request, id_qr):
-    """Redirige al endpoint de inventory o devuelve JSON. Usado desde JS del scanner."""
-    from django.shortcuts import get_object_or_404
-    from inventory.models import Rack
+    """Devuelve JSON del rack. Solo técnicos (supervisores no escanean)."""
+    if getattr(request.user, 'rol', None) != Rol.TECNICO:
+        return JsonResponse({'ok': False, 'error': 'Solo técnicos pueden escanear.'}, status=403)
     rack = get_object_or_404(Rack, id_qr=id_qr, activo=True)
     return JsonResponse({
         'ok': True,

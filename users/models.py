@@ -24,3 +24,7 @@ class Tecnico(AbstractUser):
         if not self.nombre_completo and (self.first_name or self.last_name):
             self.nombre_completo = f'{self.first_name or ""} {self.last_name or ""}'.strip()
         super().save(*args, **kwargs)
+
+    @property
+    def is_supervisor(self):
+        return self.rol == Rol.SUPERVISOR

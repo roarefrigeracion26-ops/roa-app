@@ -1,20 +1,43 @@
 """
 Formularios para parámetros de entrada (check-in) y salida (check-out).
-Estructura compatible con datos_entrada / datos_salida JSON.
+Corriente por compresor según rack; presiones fijas. Estructura en datos_entrada/datos_salida JSON.
 """
 from django import forms
 
+MAX_COMPRESORES = 24  # límite para no generar demasiados campos
 
-def build_parametros_form(compresores_media=0, compresores_baja=0, prefix=''):
-    """Construye campos dinámicos según cantidad de compresores (opcional para v1)."""
-    # En v1 usamos campos fijos; luego se pueden generar por total_compresores
-    return None
+
+def _corriente_field(numero, etiqueta_extra=''):
+    """Campo de corriente (A) para un compresor."""
+    label = f'Corriente compresor {numero} (A)'
+    if etiqueta_extra:
+        label = f'Corriente compresor {numero} {etiqueta_extra} (A)'
+    return forms.DecimalField(
+        label=label,
+        required=False,
+        min_value=0,
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'A'})
+    )
 
 
 class ParametrosEntradaForm(forms.Form):
-    """Check-in: presiones, temperaturas, setpoints, amperajes."""
-    presion_succion = forms.DecimalField(
-        label='Presión succión (psi)',
+    """
+    Check-in: corriente por compresor (según rack) + presiones.
+    Recibe rack en __init__ para generar N campos de corriente.
+    """
+    # Presiones fijas
+    presion_succion_media = forms.DecimalField(
+        label='Presión succión media temperatura (psi)',
+        required=False,
+        min_value=0,
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+    )
+    presion_succion_baja = forms.DecimalField(
+        label='Presión succión baja temperatura (psi)',
         required=False,
         min_value=0,
         max_digits=6,
@@ -29,56 +52,35 @@ class ParametrosEntradaForm(forms.Form):
         decimal_places=2,
         widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
     )
-    temp_succion = forms.DecimalField(
-        label='Temp. succión (°C)',
-        required=False,
-        max_digits=5,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'})
-    )
-    temp_descarga = forms.DecimalField(
-        label='Temp. descarga (°C)',
-        required=False,
-        max_digits=5,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'})
-    )
-    setpoint_actual = forms.DecimalField(
-        label='Set-point actual (°C)',
-        required=False,
-        max_digits=5,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'})
-    )
-    amperaje_linea_1 = forms.DecimalField(
-        label='Amperaje línea 1 (A)',
+    presion_entrada_condensacion = forms.DecimalField(
+        label='Presión entrada condensación (psi)',
         required=False,
         min_value=0,
         max_digits=6,
         decimal_places=2,
         widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
     )
-    amperaje_linea_2 = forms.DecimalField(
-        label='Amperaje línea 2 (A)',
+    presion_salida_condensacion = forms.DecimalField(
+        label='Presión salida condensación (psi)',
         required=False,
         min_value=0,
         max_digits=6,
         decimal_places=2,
         widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
     )
-    amperaje_linea_3 = forms.DecimalField(
-        label='Amperaje línea 3 (A)',
-        required=False,
-        min_value=0,
-        max_digits=6,
-        decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
-    )
-    observaciones_entrada = forms.CharField(
-        label='Notas de entrada',
-        required=False,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2})
-    )
+
+    def __init__(self, *args, rack=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rack = rack
+        if rack:
+            n = min(rack.total_compresores or 0, MAX_COMPRESORES)
+            media = rack.compresores_media or 0
+            for i in range(1, n + 1):
+                if i <= media:
+                    etiqueta = '(media)'
+                else:
+                    etiqueta = '(baja)'
+                self.fields[f'corriente_compresor_{i}'] = _corriente_field(i, etiqueta)
 
     def to_json(self):
         from decimal import Decimal
@@ -95,14 +97,18 @@ class ParametrosEntradaForm(forms.Form):
 
 
 class ParametrosSalidaForm(ParametrosEntradaForm):
-    """Mismos campos que entrada para comparar resultados."""
+    """Mismos campos que entrada (corriente por compresor + presiones) para comparar al cierre."""
     pass
 
 
 class CierreForm(forms.Form):
-    """Check-out: observaciones y parámetros finales."""
+    """Check-out: observación del trabajo realizado."""
     observaciones = forms.CharField(
-        label='Observaciones (ej: Cambio de compresor, Recarga de gas)',
+        label='Observaciones del trabajo realizado',
         required=False,
-        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Ej: Cambio de compresor, recarga de gas, ajuste de presiones...'
+        })
     )
