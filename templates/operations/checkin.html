@@ -55,8 +55,11 @@
       </div>
       <button type="submit" class="btn btn-primary">Guardar y continuar a cierre</button>
     </form>
-    <a href="{% url 'operations:checkout' registro_id=registro.pk %}" class="btn btn-link mt-2">Ir directo a cierre (sin
-      guardar entrada)</a>
+
+    <form method="post" action="{% url 'operations:saltar_checkin' registro_id=registro.pk %}" class="mt-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-link p-0">Ir directo a cierre (marcar parámetros como No medidos)</button>
+    </form>
   </div>
 </div>
 {% endblock %}

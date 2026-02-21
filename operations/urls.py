@@ -7,6 +7,7 @@ urlpatterns = [
     path('rack/<int:rack_id>/', views.FichaTecnicaView.as_view(), name='ficha'),
     path('rack/<int:rack_id>/iniciar/', views.IniciarActividadView.as_view(), name='iniciar'),
     path('registro/<int:registro_id>/entrada/', views.CheckInView.as_view(), name='checkin'),
+    path('registro/<int:registro_id>/entrada/saltar/', views.SaltarCheckInView.as_view(), name='saltar_checkin'),
     path('registro/<int:registro_id>/salida/', views.CheckOutView.as_view(), name='checkout'),
     path('api/rack-qr/<str:id_qr>/', views.api_rack_qr, name='api_rack_qr'),
 ]

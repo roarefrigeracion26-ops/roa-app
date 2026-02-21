@@ -87,6 +87,20 @@ class CheckInView(TecnicoRequiredMixin, View):
         return render(request, 'operations/checkin.html', {'registro': registro, 'form': form})
 
 
+class SaltarCheckInView(TecnicoRequiredMixin, View):
+    """POST: marca todos los parámetros iniciales como 'No medido' y redirige a cierre."""
+    def post(self, request, registro_id):
+        registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
+        form = ParametrosEntradaForm(rack=registro.rack)
+        # Llenamos el JSON de entrada con "No medido" para cada campo del form
+        datos = {}
+        for field_name in form.fields:
+            datos[field_name] = "No medido"
+        registro.datos_entrada = datos
+        registro.save(update_fields=['datos_entrada'])
+        return redirect('operations:checkout', registro_id=registro.pk)
+
+
 class CheckOutView(TecnicoRequiredMixin, View):
     """Cierre: mismos parámetros que entrada + observaciones. Al finalizar se graba hora_fin y se bloquea."""
     def get(self, request, registro_id):

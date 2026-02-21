@@ -7,9 +7,9 @@
       <strong>Registro cerrado correctamente.</strong> El registro ya no es editable.
     </div>
     {% if alerta_corto %}
-      <div class="alert alert-warning">
-        La duración fue muy corta ({{ minutos }} min). Revisa si el registro es correcto.
-      </div>
+    <div class="alert alert-warning">
+      La duración fue muy corta ({{ minutos }} min). Revisa si el registro es correcto.
+    </div>
     {% endif %}
     <div class="card">
       <div class="card-body">
@@ -19,7 +19,6 @@
       </div>
     </div>
     <a href="{% url 'operations:scanner' %}" class="btn btn-primary mt-3">Escanear otro rack</a>
-    <a href="{% url 'analytics:dashboard' %}" class="btn btn-outline-secondary mt-3">Ver reportes</a>
   </div>
 </div>
 {% endblock %}
