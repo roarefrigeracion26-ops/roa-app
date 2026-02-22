@@ -31,7 +31,7 @@ def iniciar_actividad(tecnico, rack, tipo_actividad):
     Lanza ValueError si el técnico ya tiene una tarea abierta.
     """
     if tecnico_tiene_tarea_abierta(tecnico):
-        raise ValueError('Ya tienes una tarea abierta en otro rack. Ciérrala antes de iniciar una nueva.')
+        raise ValueError('Tienes abierta una actividad en otro equipo, ciérrala para avanzar con otro.')
     if tipo_actividad not in [c[0] for c in TipoActividad.choices]:
         raise ValueError('Tipo de actividad no válido.')
     return RegistroActividad.objects.create(
