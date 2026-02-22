@@ -161,6 +161,44 @@ def api_rack_qr(request, id_qr):
     })
 
 
+def link_callback(uri, rel):
+    """
+    Convierte URIs de static/media en rutas de archivos absolutas para que pisa las encuentre.
+    """
+    import os
+    s_url = settings.STATIC_URL     # e.g., '/static/'
+    m_url = settings.MEDIA_URL      # e.g., '/media/' or '/'
+
+    # 1. Determinar el path relativo y el directorio base
+    # PRIORIDAD: Estáticos primero para evitar que MEDIA_URL="/" capture todo
+    path = None
+    relative_path = None
+    
+    if uri.startswith(s_url):
+        relative_path = uri.replace(s_url, "", 1).lstrip('/')
+        # Buscar en STATICFILES_DIRS (desarrollo)
+        if settings.STATICFILES_DIRS:
+            for d in settings.STATICFILES_DIRS:
+                trial = os.path.join(d, relative_path)
+                if os.path.exists(trial):
+                    path = trial
+                    break
+        # Si no, buscar en STATIC_ROOT (producción)
+        if not path:
+            path = os.path.join(settings.STATIC_ROOT, relative_path)
+            
+    elif m_url and uri.startswith(m_url):
+        relative_path = uri.replace(m_url, "", 1).lstrip('/')
+        path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+    # Si encontramos una ruta física y es un archivo, retornarla
+    if path and os.path.isfile(path):
+        return path
+    
+    # Fallback por si la URI ya es una ruta absoluta o no se pudo resolver
+    return uri
+
+
 class IntervencionPDFView(View):
     """Genera el reporte PDF de la intervención técnica."""
     def get(self, request, registro_id):
@@ -207,7 +245,6 @@ class IntervencionPDFView(View):
             'compresores_baja': compresores_baja,
             'datos': datos,
             'fecha': registro.hora_fin or registro.hora_inicio,
-            'STATIC_ROOT': settings.STATIC_ROOT if hasattr(settings, 'STATIC_ROOT') else settings.BASE_DIR / 'static',
         }
 
         # Renderizar a PDF
@@ -215,7 +252,7 @@ class IntervencionPDFView(View):
         html = template.render(context)
         
         result = io.BytesIO()
-        pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result)
+        pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result, link_callback=link_callback)
         
         if not pdf.err:
             response = HttpResponse(result.getvalue(), content_type='application/pdf')

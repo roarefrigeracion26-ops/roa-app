@@ -250,12 +250,12 @@
 
 <body>
 
+    {% load static %}
     <!-- CABECERA -->
     <table class="header-table">
         <tr>
             <td class="header-logo">
-                <img src="{{ STATIC_ROOT }}/image/logo_sostenibilidad.png" onerror="this.style.display='none'"
-                    width="90">
+                <img src="{% static 'image/logo_sostenibilidad.png' %}" width="110" style="display: block;">
             </td>
             <td class="doc-title-box">
                 <div class="doc-title">Check List de Mantenimiento</div>
@@ -389,17 +389,17 @@
     <div class="section-bar">Parámetros de Operación y Voltajes</div>
     <table class="info-table" style="margin-top: 4px;">
         <tr>
-            <td class="lbl">Succión Media</td>
+            <td class="lbl"> Presión Succión Media</td>
             <td class="val">{{ datos.presion_succion_media|default:"—" }} psi</td>
-            <td class="lbl">Succión Baja</td>
+            <td class="lbl">Presión Succión Baja</td>
             <td class="val">{{ datos.presion_succion_baja|default:"—" }} psi</td>
-            <td class="lbl">Descarga</td>
+            <td class="lbl">Presión Descarga</td>
             <td class="val">{{ datos.presion_descarga|default:"—" }} psi</td>
         </tr>
         <tr>
-            <td class="lbl">Entrada Cond.</td>
+            <td class="lbl">Presión Entrada Cond.</td>
             <td class="val">{{ datos.presion_entrada_condensacion|default:"—" }} psi</td>
-            <td class="lbl">Salida Cond.</td>
+            <td class="lbl">Presión Salida Cond.</td>
             <td class="val">{{ datos.presion_salida_condensacion|default:"—" }} psi</td>
             <td class="lbl">Delta P</td>
             <td class="val">—</td>
