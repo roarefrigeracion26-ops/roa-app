@@ -25,13 +25,13 @@ class Rack(models.Model):
     tienda = models.ForeignKey(Tienda, on_delete=models.PROTECT, related_name='racks')
     marca = models.CharField(max_length=100, blank=True)
     modelo = models.CharField(max_length=100, blank=True)
-    refigerante= models.CharField(max_length=100, blank=True)
+    refigerante = models.CharField(max_length=100, blank=True)
     ubicacion = models.CharField(max_length=200, blank=True,
-                                help_text='Ej: Bodega norte, Pasillo 3')
+                                 help_text='Ej: Bodega norte, Pasillo 3')
     compresores_media = models.PositiveSmallIntegerField(default=0,
-                                                        verbose_name='Cantidad compresores media')
+                                                         verbose_name='Cantidad compresores media')
     compresores_baja = models.PositiveSmallIntegerField(default=0,
-                                                       verbose_name='Cantidad compresores baja')
+                                                        verbose_name='Cantidad compresores baja')
     activo = models.BooleanField(default=True)
 
     class Meta:
@@ -45,3 +45,27 @@ class Rack(models.Model):
     @property
     def total_compresores(self):
         return (self.compresores_media or 0) + (self.compresores_baja or 0)
+
+
+class Compresor(models.Model):
+    """
+    Detalle técnico de cada compresor individual en un rack.
+    """
+    class Temperatura(models.TextChoices):
+        MEDIA = 'media', 'Media Temperatura'
+        BAJA = 'baja', 'Baja Temperatura'
+
+    rack = models.ForeignKey(Rack, on_delete=models.CASCADE, related_name='detalles_compresores')
+    numero = models.PositiveSmallIntegerField(help_text='Ej: 1, 2, 3...')
+    temperatura = models.CharField(max_length=10, choices=Temperatura.choices)
+    modelo = models.CharField(max_length=100, blank=True)
+    serie = models.CharField(max_length=100, blank=True, verbose_name='Número de serie')
+
+    class Meta:
+        verbose_name = 'Detalle de compresor'
+        verbose_name_plural = 'Detalles de compresores'
+        ordering = ['rack', 'temperatura', 'numero']
+        unique_together = ['rack', 'numero']
+
+    def __str__(self):
+        return f'C{self.numero} ({self.get_temperatura_display()}) — {self.rack.id_qr}'
