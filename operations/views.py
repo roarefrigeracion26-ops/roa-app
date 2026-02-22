@@ -1,13 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from users.mixins import TecnicoRequiredMixin
 from users.models import Rol
 from django.views import View
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import get_template
 from django.views.decorators.http import require_GET, require_POST
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required
+from xhtml2pdf import pisa
+import io
+import os
+
 
 from inventory.models import Rack
 from .models import RegistroActividad, TipoActividad
@@ -154,3 +159,68 @@ def api_rack_qr(request, id_qr):
         'compresores_media': rack.compresores_media,
         'compresores_baja': rack.compresores_baja,
     })
+
+
+class IntervencionPDFView(View):
+    """Genera el reporte PDF de la intervención técnica."""
+    def get(self, request, registro_id):
+        # Permitimos ver a técnicos y supervisores
+        registro = get_object_or_404(RegistroActividad, pk=registro_id)
+        
+        # Preparar datos de compresores
+        rack = registro.rack
+        n_compresores = rack.total_compresores
+        media_count = rack.compresores_media
+        
+        compresores_media = []
+        compresores_baja = []
+        
+        # Sacamos los datos finales (datos_salida) si existen, si no, iniciales
+        datos = registro.datos_salida if registro.datos_salida else registro.datos_entrada
+        
+        # Mapear detalles técnicos de compresores (modelo y serie)
+        detalles_map = {c.numero: c for c in rack.detalles_compresores.all()}
+        
+        for i in range(1, n_compresores + 1):
+            detalle = detalles_map.get(i)
+            comp_data = {
+                'numero': i,
+                'modelo': detalle.modelo if detalle else '—',
+                'serie': detalle.serie if detalle else '—',
+                'corriente': datos.get(f'corriente_compresor_{i}', '—'),
+                'estado_aceite': datos.get(f'estado_aceite_{i}', '—'),
+                'nivel_aceite': datos.get(f'nivel_aceite_{i}', '—'),
+                'ruido': datos.get(f'ruido_{i}', '—'),
+                'dispara_aceite': datos.get(f'dispara_aceite_{i}', '—'),
+                'dispara_presion': datos.get(f'dispara_presion_{i}', '—'),
+                'funciona_traxoil': datos.get(f'funciona_traxoil_{i}', '—'),
+            }
+            if i <= media_count:
+                compresores_media.append(comp_data)
+            else:
+                compresores_baja.append(comp_data)
+
+        context = {
+            'registro': registro,
+            'rack': rack,
+            'compresores_media': compresores_media,
+            'compresores_baja': compresores_baja,
+            'datos': datos,
+            'fecha': registro.hora_fin or registro.hora_inicio,
+            'STATIC_ROOT': settings.STATIC_ROOT if hasattr(settings, 'STATIC_ROOT') else settings.BASE_DIR / 'static',
+        }
+
+        # Renderizar a PDF
+        template = get_template('operations/reporte_pdf.html')
+        html = template.render(context)
+        
+        result = io.BytesIO()
+        pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result)
+        
+        if not pdf.err:
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            filename = f"Reporte_{rack.id_qr}_{context['fecha'].strftime('%Y%m%d')}.pdf"
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+            return response
+            
+        return HttpResponse("Error al generar PDF", status=500)

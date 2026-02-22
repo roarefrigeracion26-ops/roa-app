@@ -9,5 +9,6 @@ urlpatterns = [
     path('registro/<int:registro_id>/entrada/', views.CheckInView.as_view(), name='checkin'),
     path('registro/<int:registro_id>/entrada/saltar/', views.SaltarCheckInView.as_view(), name='saltar_checkin'),
     path('registro/<int:registro_id>/salida/', views.CheckOutView.as_view(), name='checkout'),
+    path('registro/<int:registro_id>/pdf/', views.IntervencionPDFView.as_view(), name='reporte_pdf'),
     path('api/rack-qr/<str:id_qr>/', views.api_rack_qr, name='api_rack_qr'),
 ]
