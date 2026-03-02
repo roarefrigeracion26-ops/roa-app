@@ -5,28 +5,178 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}SGMR{% endblock %}</title>
+  <title>{% block title %}ROA APP{% endblock %} — SGMAA</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons — necesario para los iconos bi-* -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
     :root {
-      --sgmr-primary: #c30110;
-      --sgmr-bg: #f8f9fa;
+      --roa-blue: #1565C0;
+      --roa-blue-light: #E3F2FD;
+      --roa-blue-mid: #1976D2;
+      --roa-gold: #B8860B;
+      --roa-gold-light: #FFF8E1;
+      --roa-bg: #F5F9FF;
     }
 
     body {
       min-height: 100vh;
-      background: var(--sgmr-bg);
+      background: var(--roa-bg);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
-    .btn-tipo {
-      min-height: 4rem;
-      font-size: 1.1rem;
+    /* Navbar */
+    .roa-navbar {
+      background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+      box-shadow: 0 2px 8px rgba(21,101,192,0.3);
     }
-
-    .navbar-brand {
+    .roa-brand-text {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+    .roa-brand-sub {
+      font-size: 0.68rem;
+      color: var(--roa-gold);
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .roa-badge-supervisor {
+      background: var(--roa-gold);
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
       font-weight: 600;
+    }
+
+    /* Cards */
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(21,101,192,0.08);
+    }
+    .card-header-roa {
+      background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+      color: #fff;
+      border-radius: 12px 12px 0 0 !important;
+      padding: 0.85rem 1.25rem;
+    }
+    .card-header-gold {
+      background: linear-gradient(135deg, var(--roa-gold) 0%, #DAA520 100%);
+      color: #fff;
+      border-radius: 12px 12px 0 0 !important;
+      padding: 0.85rem 1.25rem;
+    }
+
+    /* Buttons */
+    .btn-roa-primary {
+      background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: all 0.2s;
+    }
+    .btn-roa-primary:hover {
+      background: linear-gradient(135deg, #0D47A1 0%, var(--roa-blue) 100%);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(21,101,192,0.3);
+    }
+    .btn-roa-gold {
+      background: linear-gradient(135deg, var(--roa-gold) 0%, #DAA520 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-roa-gold:hover {
+      background: linear-gradient(135deg, #8B6914 0%, var(--roa-gold) 100%);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(184,134,11,0.3);
+    }
+    .btn-tipo-mant {
+      min-height: 5rem;
+      font-size: 1.05rem;
+      border-radius: 12px;
+      border-width: 2px;
+      transition: all 0.2s;
+    }
+    .btn-tipo-mant:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    }
+
+    /* Equipos list */
+    .equipo-card {
+      border-left: 4px solid var(--roa-blue);
+      transition: all 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .equipo-card:hover {
+      border-left-color: var(--roa-gold);
+      transform: translateX(3px);
+      box-shadow: 0 4px 16px rgba(21,101,192,0.15);
+      color: inherit;
+    }
+
+    /* Section headings */
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--roa-blue);
+      border-bottom: 2px solid var(--roa-blue-light);
+      padding-bottom: 0.4rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Alert warning */
+    .alert-preventivo {
+      background: #FFF3E0;
+      border: 1px solid var(--roa-gold);
+      border-left: 4px solid var(--roa-gold);
+      border-radius: 8px;
+    }
+
+    /* Form labels */
+    label { font-weight: 500; font-size: 0.9rem; }
+    .form-control, .form-select {
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--roa-blue);
+      box-shadow: 0 0 0 0.2rem rgba(21,101,192,0.15);
+    }
+
+    /* Radicado badge */
+    .radicado-badge {
+      background: var(--roa-gold);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+    .radicado-prefix {
+      display: inline-block;
+      background: var(--roa-blue);
+      color: #fff;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 6px 0 0 6px;
+      font-size: 1rem;
     }
   </style>
   {% block extra_css %}{% endblock %}
@@ -34,35 +184,47 @@
 
 <body>
   {% if user.is_authenticated %}
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <nav class="navbar navbar-expand-lg roa-navbar px-3 py-2">
     <div class="container-fluid">
-      <a class="navbar-brand d-flex align-items-center"
-        href="{% if user.is_supervisor %}{% url 'analytics:dashboard' %}{% else %}{% url 'operations:scanner' %}{% endif %}">
-        <img src="{% static 'image/logo-olimpica2.png' %}" alt="SGMR" style="height: 35px;"
-          onerror="this.style.display='none'; var s=document.createElement('span'); s.textContent='SGMR'; this.parentNode.appendChild(s);">
+      <!-- Brand -->
+      <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none"
+        href="{% if user.is_supervisor %}{% url 'analytics:dashboard' %}{% else %}{% url 'inventory:clientes' %}{% endif %}">
+        <div>
+          <div class="roa-brand-text">ROA APP</div>
+          <div class="roa-brand-sub">SGMAA</div>
+        </div>
       </a>
-      <span class="navbar-text text-white position-absolute start-50 translate-middle-x">
-        {{ user.get_full_name|default:user.nombre_completo }}
-        {% if user.is_supervisor %}<span class="badge bg-light text-dark ms-1">Supervisor</span>{% endif %}
+      <!-- User name centered -->
+      <span class="text-white position-absolute start-50 translate-middle-x d-none d-md-block" style="font-size:0.9rem;">
+        {{ user.nombre_completo|default:user.get_full_name|default:user.username }}
+        {% if user.is_supervisor %}<span class="roa-badge-supervisor ms-1">Supervisor</span>{% endif %}
       </span>
-      <div class="ms-auto d-flex align-items-center">
+      <!-- Nav buttons -->
+      <div class="ms-auto d-flex align-items-center gap-2">
         {% if user.is_supervisor %}
-        <a class="btn btn-outline-light btn-sm me-2" href="{% url 'analytics:dashboard' %}">Reportes</a>
+        <a class="btn btn-outline-light btn-sm" href="{% url 'analytics:dashboard' %}">
+          <i class="bi bi-bar-chart-line"></i> Reportes
+        </a>
         {% else %}
-        <a class="btn btn-outline-light btn-sm me-2" href="{% url 'operations:scanner' %}">Escáner</a>
+        <a class="btn btn-outline-light btn-sm" href="{% url 'inventory:clientes' %}">
+          <i class="bi bi-house-door"></i> Inicio
+        </a>
         {% endif %}
         <form action="{% url 'users:logout' %}" method="post" style="display:inline;">
           {% csrf_token %}
-          <button type="submit" class="btn btn-outline-light btn-sm">Salir</button>
+          <button type="submit" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Salir
+          </button>
         </form>
       </div>
     </div>
   </nav>
   {% endif %}
+
   <main class="container py-4">
     {% if messages %}
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3" role="alert">
       {{ message }}
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -70,6 +232,7 @@
     {% endif %}
     {% block content %}{% endblock %}
   </main>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   {% block extra_js %}{% endblock %}
 </body>

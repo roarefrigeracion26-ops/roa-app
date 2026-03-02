@@ -3,12 +3,12 @@ from . import views
 
 app_name = 'operations'
 urlpatterns = [
-    path('scanner/', views.ScannerView.as_view(), name='scanner'),
-    path('rack/<int:rack_id>/', views.FichaTecnicaView.as_view(), name='ficha'),
-    path('rack/<int:rack_id>/iniciar/', views.IniciarActividadView.as_view(), name='iniciar'),
-    path('registro/<int:registro_id>/entrada/', views.CheckInView.as_view(), name='checkin'),
-    path('registro/<int:registro_id>/entrada/saltar/', views.SaltarCheckInView.as_view(), name='saltar_checkin'),
-    path('registro/<int:registro_id>/salida/', views.CheckOutView.as_view(), name='checkout'),
-    path('registro/<int:registro_id>/pdf/', views.IntervencionPDFView.as_view(), name='reporte_pdf'),
-    path('api/rack-qr/<str:id_qr>/', views.api_rack_qr, name='api_rack_qr'),
+    path('equipo/<int:equipo_id>/', views.FichaEquipoView.as_view(), name='ficha_equipo'),
+    path('orden/nueva/<int:equipo_id>/', views.NuevaOrdenView.as_view(), name='nueva_orden'),
+    path('orden/<int:orden_id>/formulario/', views.FormularioOrdenView.as_view(), name='formulario_orden'),
+    path('orden/<int:orden_id>/equipo/agregar/', views.AgregarEquipoView.as_view(), name='agregar_equipo'),
+    path('orden/<int:orden_id>/actividades/', views.ActualizarActividadesView.as_view(), name='actualizar_actividades'),
+    path('orden/<int:orden_id>/finalizar/', views.FinalizarOrdenView.as_view(), name='finalizar_orden'),
+    path('orden/<int:orden_id>/cerrada/', views.OrdenCerradaView.as_view(), name='orden_cerrada'),
+    path('orden/<int:orden_id>/pdf/', views.PDFOrdenView.as_view(), name='pdf_orden'),
 ]

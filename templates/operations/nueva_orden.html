@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Nueva Orden — {{ equipo.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'operations:ficha_equipo' equipo.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <h1 class="h4 fw-bold text-primary mb-0">Nueva Orden de Servicio</h1>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2 px-3">
+        <div class="small text-muted">Equipo</div>
+        <div class="fw-semibold">{{ equipo.nombre }} <span class="badge bg-primary ms-1">{{ equipo.tipo_equipo }}</span>
+        </div>
+        <div class="small text-muted">{{ equipo.cliente.nombre }}</div>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Tipo de mantenimiento -->
+    <div class="card mb-3">
+        <div class="card-header-roa"><i class="bi bi-gear me-1"></i>Tipo de Mantenimiento</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6">
+                    <label class="card p-3 border-2 text-center" id="label-MP"
+                        style="cursor:pointer;border-radius:10px;transition:all 0.2s;">
+                        <input type="radio" name="tipo" value="MP" class="d-none tipo-radio" {% if
+                            request.GET.tipo=='MP' or not request.GET.tipo %}checked{% endif %} onchange="updateTipo()">
+                        <i class="bi bi-clipboard-check-fill fs-3 text-primary d-block mb-1"></i>
+                        <div class="fw-bold">Preventivo</div>
+                        <div class="small text-muted">Tipo A · MP#####</div>
+                    </label>
+                </div>
+                <div class="col-6">
+                    <label class="card p-3 border-2 text-center" id="label-MC"
+                        style="cursor:pointer;border-radius:10px;transition:all 0.2s;">
+                        <input type="radio" name="tipo" value="MC" class="d-none tipo-radio" {% if
+                            request.GET.tipo=='MC' %}checked{% endif %} onchange="updateTipo()">
+                        <i class="bi bi-tools fs-3 text-warning d-block mb-1"></i>
+                        <div class="fw-bold">Correctivo</div>
+                        <div class="small text-muted">MC#####</div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Radicado -->
+    <div class="card mb-3">
+        <div class="card-header-roa"><i class="bi bi-hash me-1"></i>Número de Radicado</div>
+        <div class="card-body">
+            <label class="form-label">Radicado No. <span class="text-danger">*</span></label>
+            <div class="input-group">
+                <span class="input-group-text fw-bold" id="radicado-prefix"
+                    style="background:var(--roa-blue);color:#fff;font-size:1rem;">MP</span>
+                <input type="text" name="radicado_numero" class="form-control fs-5 fw-bold" inputmode="numeric"
+                    pattern="[0-9]*" placeholder="9167" required value="{{ form.radicado_numero.value|default:'' }}"
+                    style="letter-spacing:2px;">
+            </div>
+            <div class="form-text">Solo los dígitos, sin el prefijo</div>
+        </div>
+    </div>
+
+    <!-- Encabezado -->
+    <div class="card mb-3">
+        <div class="card-header-roa"><i class="bi bi-person-lines-fill me-1"></i>Datos del Encabezado</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Cliente <span class="text-danger">*</span></label>
+                    <input type="text" name="cliente_nombre" class="form-control" required
+                        value="{{ form.cliente_nombre.value|default:equipo.cliente.nombre }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Dir. Cliente</label>
+                    <input type="text" name="dir_cliente" class="form-control"
+                        value="{{ form.dir_cliente.value|default:equipo.cliente.dir_cliente }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">No. Orden de Servicio</label>
+                    <input type="text" name="num_orden" class="form-control"
+                        value="{{ form.num_orden.value|default:'' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Fecha <span class="text-danger">*</span></label>
+                    <input type="date" name="fecha" class="form-control" required
+                        value="{{ form.fecha.value|default:'' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Mes</label>
+                    <input type="text" name="mes" class="form-control" placeholder="8/2025"
+                        value="{{ form.mes.value|default:'' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if form.errors %}
+    <div class="alert alert-danger">{{ form.errors }}</div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-roa-primary w-100 py-3 fs-5">
+        <i class="bi bi-play-circle-fill me-2"></i>Iniciar Mantenimiento
+    </button>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateTipo() {
+        const radios = document.querySelectorAll('.tipo-radio');
+        radios.forEach(r => {
+            const lbl = document.getElementById('label-' + r.value);
+            if (r.checked) {
+                lbl.style.borderColor = r.value === 'MP' ? 'var(--roa-blue)' : 'var(--roa-gold)';
+                lbl.style.background = r.value === 'MP' ? 'var(--roa-blue-light)' : 'var(--roa-gold-light)';
+                document.getElementById('radicado-prefix').textContent = r.value;
+            } else {
+                lbl.style.borderColor = '';
+                lbl.style.background = '';
+            }
+        });
+    }
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', updateTipo);
+</script>
+{% endblock %}

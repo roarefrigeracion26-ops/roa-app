@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 fw-bold text-primary mb-0">
+        <i class="bi bi-building me-2"></i>Seleccionar Cliente
+    </h1>
+</div>
+
+{% if preventivo_abierto %}
+<div class="alert alert-preventivo mb-4">
+    <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-5 mt-1"></i>
+        <div>
+            <strong>Tienes un Preventivo abierto:</strong> {{ preventivo_abierto.radicado }}
+            — {{ preventivo_abierto.equipo.nombre }} ({{ preventivo_abierto.equipo.cliente.nombre }})<br>
+            <a href="{% url 'operations:formulario_orden' preventivo_abierto.pk %}"
+                class="btn btn-sm btn-roa-gold mt-2">
+                <i class="bi bi-arrow-right-circle me-1"></i>Continuar preventivo
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="mb-3">
+    <input type="search" id="buscarCliente" class="form-control" placeholder="🔍 Buscar cliente...">
+</div>
+
+<div id="listaClientes">
+    {% for cliente in clientes %}
+    <a href="{% url 'inventory:equipos_cliente' cliente.pk %}" class="equipo-card card mb-2 p-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                style="width:42px;height:42px;background:var(--roa-blue-light);flex-shrink:0;">
+                <i class="bi bi-building text-primary fs-5"></i>
+            </div>
+            <div>
+                <div class="fw-semibold">{{ cliente.nombre }}</div>
+                {% if cliente.dir_cliente %}
+                <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ cliente.dir_cliente }}</div>
+                {% endif %}
+            </div>
+            <i class="bi bi-chevron-right text-muted ms-auto"></i>
+        </div>
+    </a>
+    {% empty %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-building-x fs-1 d-block mb-2"></i>
+        No hay clientes registrados. Contacte al administrador.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const input = document.getElementById('buscarCliente');
+    input.addEventListener('input', () => {
+        const q = input.value.toLowerCase();
+        document.querySelectorAll('#listaClientes .equipo-card').forEach(card => {
+            card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

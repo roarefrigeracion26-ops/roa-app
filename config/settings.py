@@ -1,5 +1,5 @@
 """
-Django settings for SGMR (Sistema de Gestión de Mantenimiento de Racks).
+Django settings for ROA APP — SGMAA (Sistema de Gestión de Mantenimiento de Aire Acondicionado).
 """
 from pathlib import Path
 
@@ -54,7 +54,7 @@ if DATABASES['default'].get('ENGINE', '').endswith('postgresql'):
 
 AUTH_USER_MODEL = 'users.Tecnico'
 LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'operations:scanner'
+LOGIN_REDIRECT_URL = 'inventory:clientes'
 LOGOUT_REDIRECT_URL = 'users:login'
 
 LANGUAGE_CODE = 'es-co'

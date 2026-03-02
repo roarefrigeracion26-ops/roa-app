@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ equipo.nombre }} — Ficha{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'inventory:equipos_cliente' equipo.cliente.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <h1 class="h4 fw-bold text-primary mb-0">{{ equipo.nombre }}</h1>
+</div>
+
+<!-- Ficha del equipo -->
+<div class="card mb-4">
+    <div class="card-header-roa">
+        <i class="bi bi-snow2 me-2"></i><strong>Datos del Equipo</strong>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-6">
+                <div class="text-muted small">Cliente</div>
+                <div class="fw-semibold">{{ equipo.cliente.nombre }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Ubicación</div>
+                <div class="fw-semibold">{{ equipo.ubicacion|default:"—" }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Tipo</div>
+                <div><span class="badge bg-primary">{{ equipo.tipo_equipo }}</span></div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Circuitos</div>
+                <div class="fw-semibold">{{ equipo.num_circuitos }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Marca</div>
+                <div class="fw-semibold">{{ equipo.marca|default:"—" }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Modelo</div>
+                <div class="fw-semibold">{{ equipo.modelo|default:"—" }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Capacidad</div>
+                <div class="fw-semibold">{{ equipo.capacidad|default:"—" }}</div>
+            </div>
+            <div class="col-6">
+                <div class="text-muted small">Refrigerante</div>
+                <div class="fw-semibold">{{ equipo.refrigerante|default:"—" }}</div>
+            </div>
+            {% if equipo.activo_fijo %}
+            <div class="col-12">
+                <div class="text-muted small">Activo Fijo</div>
+                <div class="fw-semibold">{{ equipo.activo_fijo }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if preventivo_abierto %}
+<div class="alert alert-preventivo mb-3">
+    <i class="bi bi-lock-fill text-warning me-2"></i>
+    <strong>Tienes un Preventivo Tipo A abierto:</strong><br>
+    <span class="radicado-badge">{{ preventivo_abierto.radicado }}</span>
+    — {{ preventivo_abierto.equipo.nombre }}<br>
+    <a href="{% url 'operations:formulario_orden' preventivo_abierto.pk %}" class="btn btn-roa-gold mt-2">
+        <i class="bi bi-arrow-right-circle me-1"></i>Continuar ese mantenimiento
+    </a>
+</div>
+{% else %}
+<!-- Botones de tipo -->
+<p class="section-title">¿Qué tipo de mantenimiento vas a realizar?</p>
+<div class="row g-3">
+    <div class="col-6">
+        <a href="{% url 'operations:nueva_orden' equipo.pk %}?tipo=MP"
+            class="btn btn-roa-primary btn-tipo-mant w-100 d-flex flex-column align-items-center justify-content-center">
+            <i class="bi bi-clipboard-check-fill fs-3 mb-1"></i>
+            <span>Preventivo</span>
+            <small class="fw-normal opacity-75">Tipo A</small>
+        </a>
+    </div>
+    <div class="col-6">
+        <a href="{% url 'operations:nueva_orden' equipo.pk %}?tipo=MC"
+            class="btn btn-roa-gold btn-tipo-mant w-100 d-flex flex-column align-items-center justify-content-center">
+            <i class="bi bi-tools fs-3 mb-1"></i>
+            <span>Correctivo</span>
+            <small class="fw-normal opacity-75">MC</small>
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

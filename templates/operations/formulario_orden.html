@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block title %}Orden {{ orden.radicado }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .equipo-card-idx {
+        background: var(--roa-blue-light);
+        border-left: 4px solid var(--roa-blue);
+        border-radius: 8px;
+    }
+
+    .seccion-medicion {
+        background: #f8f9ff;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .tab-tipo {
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        padding: 8px 18px;
+        border: 1px solid #dee2e6;
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .tab-tipo.active-uca {
+        background: var(--roa-blue);
+        color: #fff;
+    }
+
+    .tab-tipo.active-split {
+        background: var(--roa-gold);
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between mb-3">
+    <div>
+        <h1 class="h4 fw-bold text-primary mb-0">Formulario de Intervención</h1>
+        <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="radicado-badge">{{ orden.radicado }}</span>
+            <span class="badge {% if es_preventivo %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                {{ orden.get_tipo_display }}
+            </span>
+        </div>
+    </div>
+    <a href="{% url 'inventory:equipos_cliente' equipo.cliente.pk %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-house-door"></i>
+    </a>
+</div>
+
+<!-- Info del encabezado -->
+<div class="card mb-3">
+    <div class="card-body py-2 px-3">
+        <div class="row g-2 small">
+            <div class="col-6"><span class="text-muted">Cliente:</span> <strong>{{ orden.cliente_nombre }}</strong>
+            </div>
+            <div class="col-6"><span class="text-muted">Fecha:</span> <strong>{{ orden.fecha }}</strong></div>
+            <div class="col-6"><span class="text-muted">Dir:</span> {{ orden.dir_cliente|default:"—" }}</div>
+            <div class="col-6"><span class="text-muted">Orden:</span> {{ orden.num_orden|default:"—" }}</div>
+            <div class="col-6"><span class="text-muted">Equipo:</span> {{ equipo.nombre }}</div>
+            <div class="col-6"><span class="text-muted">Mes:</span> {{ orden.mes|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── SECCIÓN 1: Actividades ─────────────────────────── -->
+<div class="card mb-3">
+    <div class="card-header-roa"><i class="bi bi-list-check me-1"></i>Actividades Realizadas</div>
+    <div class="card-body">
+        <form method="post" action="{% url 'operations:actualizar_actividades' orden.pk %}">
+            {% csrf_token %}
+            {% if es_preventivo %}
+            {% for act in actividades %}
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="actividad_marcada" value="{{ act.pk }}"
+                    id="act{{ act.pk }}" {% if act.marcada %}checked{% endif %}>
+                <label class="form-check-label" for="act{{ act.pk }}">{{ act.texto }}</label>
+            </div>
+            {% endfor %}
+            {% else %}
+            <label class="form-label">Descripción de actividades realizadas</label>
+            <textarea name="actividades_texto" class="form-control" rows="4"
+                placeholder="Describa las actividades realizadas...">{% for act in actividades %}{{ act.texto }}{% endfor %}</textarea>
+            {% endif %}
+            <button type="submit" class="btn btn-outline-primary btn-sm mt-3">
+                <i class="bi bi-save me-1"></i>Guardar actividades
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ── SECCIÓN 2: Equipos Intervenidos ───────────────── -->
+<div class="card mb-3">
+    <div class="card-header-gold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-snow2 me-1"></i>Equipos Intervenidos</span>
+        <button class="btn btn-sm btn-light fw-bold" data-bs-toggle="collapse" data-bs-target="#formAgregar">
+            <i class="bi bi-plus-circle me-1"></i>Agregar
+        </button>
+    </div>
+    <div class="card-body p-0">
+
+        <!-- Formulario agregar equipo (colapsable) -->
+        <div class="collapse" id="formAgregar">
+            <form method="post" action="{% url 'operations:agregar_equipo' orden.pk %}" id="form-agregar-equipo">
+                {% csrf_token %}
+                <div class="p-3 border-bottom">
+                    <p class="section-title">Datos del Equipo</p>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Nombre del equipo *</label>
+                            <input type="text" name="nombre_equipo" class="form-control" placeholder="Ej: UCA 1"
+                                required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" name="ubicacion" class="form-control" placeholder="Ej: AZOTEA">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Tipo equipo</label>
+                            <select name="tipo_equipo" class="form-select" id="sel-tipo-eq" onchange="updateTipoEq()">
+                                <option value="">— Seleccionar —</option>
+                                <option value="UCA">UCA</option>
+                                <option value="UMA">UMA</option>
+                                <option value="SPLIT">Split</option>
+                                <option value="CASSETTE">Cassette</option>
+                                <option value="PISO_TECHO">Piso Techo</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Refrigerante</label>
+                            <select name="refrigerante" class="form-select">
+                                <option value="">—</option>
+                                <option>R410A</option>
+                                <option>R22</option>
+                                <option>R32</option>
+                                <option>R407C</option>
+                                <option>R134A</option>
+                                <option>R404A</option>
+                                <option>Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Marca</label>
+                            <input type="text" name="marca" class="form-control" placeholder="Ej: CONFORTFRESH">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Modelo</label>
+                            <input type="text" name="modelo" class="form-control" placeholder="Ej: CPV13300X2">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Capacidad</label>
+                            <input type="text" name="capacidad" class="form-control" placeholder="25TR">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Voltaje</label>
+                            <input type="text" name="voltaje" class="form-control" placeholder="220 V">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Fases/Frec.</label>
+                            <input type="text" name="fases" class="form-control" placeholder="3 PH 60HZ">
+                        </div>
+                    </div>
+                    <!-- Corriente / Amperaje -->
+                    <p class="section-title mt-3">Corriente L1/L2/L3 (A)</p>
+                    <div class="row g-2">
+                        <div class="col-4"><input type="number" name="corriente_l1" class="form-control"
+                                placeholder="L1" step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="corriente_l2" class="form-control"
+                                placeholder="L2" step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="corriente_l3" class="form-control"
+                                placeholder="L3" step="0.01" inputmode="decimal"></div>
+                    </div>
+                    <p class="section-title mt-3">Amperaje L1/L2/L3 (A)</p>
+                    <div class="row g-2">
+                        <div class="col-4"><input type="number" name="amperaje_l1" class="form-control" placeholder="L1"
+                                step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="amperaje_l2" class="form-control" placeholder="L2"
+                                step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="amperaje_l3" class="form-control" placeholder="L3"
+                                step="0.01" inputmode="decimal"></div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-6">
+                            <label class="form-label">Tipo de Correa</label>
+                            <input type="text" name="tipo_correa" class="form-control" placeholder="Ej: BX38">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Activo Fijo</label>
+                            <input type="text" name="activo_fijo" class="form-control" placeholder="1433977">
+                        </div>
+                    </div>
+
+                    <!-- Mediciones -->
+                    <p class="section-title mt-3">Mediciones</p>
+                    <div class="d-flex gap-2 mb-2">
+                        <label class="tab-tipo active-uca" id="tab-uca" onclick="setMedicion('uca')">
+                            <input type="radio" name="tipo_medicion" value="uca" checked class="d-none"> 🧊 UCA
+                            (Presiones)
+                        </label>
+                        <label class="tab-tipo" id="tab-split" onclick="setMedicion('split')">
+                            <input type="radio" name="tipo_medicion" value="split" class="d-none"> 🌡️ UMA / Split
+                            (Temp.)
+                        </label>
+                    </div>
+
+                    <!-- UCA panels -->
+                    <div id="panel-uca" class="seccion-medicion p-3">
+                        <div id="circuitos-container">
+                            <!-- Circuito A siempre -->
+                            <div class="mb-3">
+                                <input type="hidden" name="circuito_label" value="A">
+                                <p class="fw-bold mb-2">Circuito A</p>
+                                <div class="row g-2">
+                                    <div class="col-6"><label class="form-label small">Baja P. Antes (PSI)</label><input
+                                            type="number" name="circ_A_baja_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Baja P. Después
+                                            (PSI)</label><input type="number" name="circ_A_baja_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Antes (PSI)</label><input
+                                            type="number" name="circ_A_alta_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Después
+                                            (PSI)</label><input type="number" name="circ_A_alta_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                </div>
+                            </div>
+                            <!-- Circuito B (visible si el equipo tiene 2 circuitos) -->
+                            <div id="circ-B" class="mb-3" style="display:none">
+                                <input type="hidden" name="circuito_label" value="B" disabled id="hidden-circ-B">
+                                <p class="fw-bold mb-2">Circuito B</p>
+                                <div class="row g-2">
+                                    <div class="col-6"><label class="form-label small">Baja P. Antes (PSI)</label><input
+                                            type="number" name="circ_B_baja_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Baja P. Después
+                                            (PSI)</label><input type="number" name="circ_B_baja_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Antes (PSI)</label><input
+                                            type="number" name="circ_B_alta_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Después
+                                            (PSI)</label><input type="number" name="circ_B_alta_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                </div>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="chk-circ-b"
+                                    onchange="toggleCircB()">
+                                <label class="form-check-label" for="chk-circ-b">Este equipo tiene Circuito B</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Split panel -->
+                    <div id="panel-split" class="seccion-medicion p-3" style="display:none">
+                        <div class="row g-2">
+                            <div class="col-6"><label class="form-label small">T. Suministro Antes (°C)</label><input
+                                    type="number" name="temp_sumin_antes" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="form-label small">T. Suministro Después (°C)</label><input
+                                    type="number" name="temp_sumin_despues" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="form-label small">T. Retorno Antes (°C)</label><input
+                                    type="number" name="temp_retorno_antes" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="form-label small">T. Retorno Después (°C)</label><input
+                                    type="number" name="temp_retorno_despues" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <p class="section-title mt-3">Observaciones</p>
+                    <textarea name="observacion" class="form-control" rows="2"
+                        placeholder="Ej: Serpín evaporador presentaba suciedad leve."></textarea>
+                </div>
+                <div class="p-3">
+                    <button type="submit" class="btn btn-roa-primary w-100">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar Equipo Intervenido
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de equipos intervenidos ya guardados -->
+        {% for ei in equipos_intervenidos %}
+        <div class="equipo-card-idx p-3 m-3">
+            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo
+                    }}</span></div>
+            <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }} · {{ ei.capacidad }} · {{ ei.refrigerante }}
+            </div>
+            <div class="small">
+                <span class="text-muted">L1-L2-L3:</span>
+                {{ ei.corriente_l1|default:"—" }} / {{ ei.corriente_l2|default:"—" }} / {{ ei.corriente_l3|default:"—"
+                }} A
+            </div>
+            {% with obs=ei.observacion %}
+            {% if obs.texto %}<div class="small text-muted mt-1"><i class="bi bi-chat-left-text me-1"></i>{{ obs.texto
+                }}</div>{% endif %}
+            {% endwith %}
+            <!-- Mediciones UCA -->
+            {% for m in ei.mediciones_uca.all %}
+            <div class="mt-1 small"><strong>Circ. {{ m.circuito }}</strong>
+                Baja: {{ m.baja_p_antes|default:"—" }}→{{ m.baja_p_despues|default:"—" }} PSI |
+                Alta: {{ m.alta_p_antes|default:"—" }}→{{ m.alta_p_despues|default:"—" }} PSI
+            </div>
+            {% endfor %}
+            <!-- Medición Split -->
+            {% with ms=ei.medicion_split %}
+            {% if ms %}
+            <div class="mt-1 small"><strong>Temp.</strong>
+                Suminst: {{ ms.temp_sumin_antes|default:"—" }}→{{ ms.temp_sumin_despues|default:"—" }} °C |
+                Retorno: {{ ms.temp_retorno_antes|default:"—" }}→{{ ms.temp_retorno_despues|default:"—" }} °C
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+        {% empty %}
+        <div class="text-center text-muted py-3 small">
+            <i class="bi bi-snow2 me-1"></i>Agrega al menos un equipo intervenido
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ── SECCIÓN 3: Finalizar ──────────────────────────── -->
+<div class="card mb-4">
+    <div class="card-body">
+        <a href="{% url 'operations:pdf_orden' orden.pk %}" class="btn btn-outline-primary w-100 mb-2" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Vista previa PDF
+        </a>
+        {% if equipos_intervenidos %}
+        <form method="post" action="{% url 'operations:finalizar_orden' orden.pk %}"
+            onsubmit="return confirm('¿Finalizar la orden? Esta acción no se puede deshacer.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-roa-primary w-100 py-3">
+                <i class="bi bi-check-circle-fill me-2"></i>Finalizar Orden ({{ orden.radicado }})
+            </button>
+        </form>
+        {% else %}
+        <p class="text-muted text-center small mb-0">Agrega al menos un equipo para poder finalizar</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function setMedicion(tipo) {
+        document.getElementById('panel-uca').style.display = tipo === 'uca' ? '' : 'none';
+        document.getElementById('panel-split').style.display = tipo === 'split' ? '' : 'none';
+        document.getElementById('tab-uca').className = 'tab-tipo ' + (tipo === 'uca' ? 'active-uca' : '');
+        document.getElementById('tab-split').className = 'tab-tipo ' + (tipo === 'split' ? 'active-split' : '');
+        document.querySelector('input[name="tipo_medicion"][value="' + tipo + '"]').checked = true;
+    }
+    function toggleCircB() {
+        const show = document.getElementById('chk-circ-b').checked;
+        document.getElementById('circ-B').style.display = show ? '' : 'none';
+        document.getElementById('hidden-circ-B').disabled = !show;
+    }
+    function updateTipoEq() {
+        const tipo = document.getElementById('sel-tipo-eq').value;
+        if (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'CASSETTE' || tipo === 'PISO_TECHO') {
+            setMedicion('split');
+        } else {
+            setMedicion('uca');
+        }
+    }
+</script>
+{% endblock %}

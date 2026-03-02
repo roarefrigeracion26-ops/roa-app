@@ -1,5 +1,5 @@
 """
-URL configuration for SGMR.
+URL configuration for ROA APP (SGMAA).
 """
 from django.contrib import admin
 from django.urls import path, include

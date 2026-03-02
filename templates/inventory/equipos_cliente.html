@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ cliente.nombre }} — Equipos{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{% url 'inventory:clientes' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <div>
+        <h1 class="h4 fw-bold text-primary mb-0">{{ cliente.nombre }}</h1>
+        {% if cliente.dir_cliente %}<div class="text-muted small">{{ cliente.dir_cliente }}</div>{% endif %}
+    </div>
+</div>
+
+{% if preventivo_abierto %}
+<div class="alert alert-preventivo mb-3">
+    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+    <strong>Preventivo abierto:</strong> {{ preventivo_abierto.radicado }} — {{ preventivo_abierto.equipo.nombre }}
+    <a href="{% url 'operations:formulario_orden' preventivo_abierto.pk %}" class="btn btn-sm btn-roa-gold ms-2">
+        Continuar
+    </a>
+</div>
+{% endif %}
+
+<p class="section-title"><i class="bi bi-wind me-1"></i>Equipos de Aire Acondicionado</p>
+
+{% for equipo in equipos %}
+<a href="{% url 'operations:ficha_equipo' equipo.pk %}" class="equipo-card card mb-2 p-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center"
+            style="width:42px;height:42px;background:var(--roa-blue-light);flex-shrink:0;">
+            <i class="bi bi-snow2 text-primary fs-5"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="fw-semibold">{{ equipo.nombre }}</div>
+            <div class="text-muted small">
+                <span class="badge bg-primary-subtle text-primary me-1">{{ equipo.tipo_equipo }}</span>
+                {% if equipo.marca %}{{ equipo.marca }}{% endif %}
+                {% if equipo.ubicacion %} · {{ equipo.ubicacion }}{% endif %}
+            </div>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+    </div>
+</a>
+{% empty %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-wind fs-1 d-block mb-2"></i>
+    No hay equipos registrados para este cliente.
+</div>
+{% endfor %}
+{% endblock %}

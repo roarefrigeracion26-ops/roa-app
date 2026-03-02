@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Orden Finalizada — {{ orden.radicado }}{% endblock %}
+{% block content %}
+<div class="text-center py-4">
+    <div class="mb-3" style="font-size:4rem;">✅</div>
+    <h2 class="fw-bold text-primary">¡Orden Finalizada!</h2>
+    <div class="radicado-badge d-inline-block mb-3">{{ orden.radicado }}</div>
+    <p class="text-muted">El mantenimiento ha sido cerrado y el PDF está disponible.</p>
+
+    {% if alerta_corto %}
+    <div class="alert alert-warning small mx-auto" style="max-width:380px;">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Tiempo de intervención corto: {{ minutos }} min. Verifica que el registro sea correcto.
+    </div>
+    {% endif %}
+
+    <div class="card mx-auto mt-3 text-start" style="max-width:400px;">
+        <div class="card-body">
+            <div class="row g-2 small">
+                <div class="col-6"><span class="text-muted">Técnico:</span><br><strong>{{
+                        orden.tecnico.nombre_completo|default:orden.tecnico.username }}</strong></div>
+                <div class="col-6"><span class="text-muted">Fecha:</span><br><strong>{{ orden.fecha }}</strong></div>
+                <div class="col-6"><span class="text-muted">Equipo:</span><br><strong>{{ orden.equipo.nombre }}</strong>
+                </div>
+                <div class="col-6"><span class="text-muted">Cliente:</span><br><strong>{{ orden.cliente_nombre
+                        }}</strong></div>
+                <div class="col-6"><span class="text-muted">Duración:</span><br><strong>{{ minutos|default:"—" }}
+                        min</strong></div>
+                <div class="col-6"><span class="text-muted">Tipo:</span><br><strong>{{ orden.get_tipo_display
+                        }}</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex flex-column gap-2 align-items-center">
+        <a href="{% url 'operations:pdf_orden' orden.pk %}" target="_blank" class="btn btn-roa-gold px-5">
+            <i class="bi bi-file-earmark-pdf-fill me-1"></i>Descargar / Ver PDF FT-GM-41
+        </a>
+        <a href="{% url 'inventory:clientes' %}" class="btn btn-outline-primary">
+            <i class="bi bi-house-door me-1"></i>Volver al Inicio
+        </a>
+    </div>
+</div>
+{% endblock %}

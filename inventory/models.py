@@ -1,71 +1,77 @@
 from django.db import models
 
 
-class Tienda(models.Model):
-    """Sucursal donde está instalado el rack."""
+class Cliente(models.Model):
+    """Cliente / sucursal donde están instalados los equipos de AA."""
     nombre = models.CharField(max_length=200)
-    codigo = models.CharField(max_length=50, unique=True, blank=True)
-    direccion = models.CharField(max_length=300, blank=True)
+    dir_cliente = models.CharField(max_length=300, blank=True, verbose_name='Dirección')
+    activo = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name = 'Tienda'
-        verbose_name_plural = 'Tiendas'
+        verbose_name = 'Cliente'
+        verbose_name_plural = 'Clientes'
         ordering = ['nombre']
 
     def __str__(self):
         return self.nombre
 
 
-class Rack(models.Model):
+class TipoEquipo(models.TextChoices):
+    UCA = 'UCA', 'UCA — Unidad Condensadora'
+    UMA = 'UMA', 'UMA — Unidad Manejadora'
+    SPLIT = 'SPLIT', 'Split'
+    CASSETTE = 'CASSETTE', 'Cassette'
+    PISO_TECHO = 'PISO_TECHO', 'Piso Techo'
+    OTRO = 'OTRO', 'Otro'
+
+
+class EquipoAA(models.Model):
     """
-    Activo (rack de refrigeración). El QR contiene id_qr que identifica este registro.
+    Activo de Aire Acondicionado. El QR (cuando se habilite) contiene id_qr.
+    tipo_equipo determina qué mediciones se registran:
+      - UCA → mediciones de presión por circuito (hasta num_circuitos)
+      - UMA / SPLIT → mediciones de temperatura suministro/retorno
     """
-    id_qr = models.CharField(max_length=100, unique=True, db_index=True,
-                             help_text='ID único en el código QR del rack')
-    tienda = models.ForeignKey(Tienda, on_delete=models.PROTECT, related_name='racks')
+    id_qr = models.CharField(
+        max_length=100, unique=True, db_index=True, blank=True, null=True,
+        help_text='ID único en el código QR (opcional por ahora)'
+    )
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.PROTECT, related_name='equipos'
+    )
+    nombre = models.CharField(max_length=200, help_text='Ej: UCA 1, UMA 2, SPLIT 1')
+    ubicacion = models.CharField(max_length=200, blank=True, help_text='Ej: AZOTEA, CUARTO RETORNO')
+    tipo_equipo = models.CharField(
+        max_length=20, choices=TipoEquipo.choices, default=TipoEquipo.UCA
+    )
+    num_circuitos = models.PositiveSmallIntegerField(
+        default=1,
+        help_text='Número de circuitos (1 o 2). Aplica a UCA para determinar circuitos A y B.'
+    )
     marca = models.CharField(max_length=100, blank=True)
     modelo = models.CharField(max_length=100, blank=True)
-    refigerante = models.CharField(max_length=100, blank=True)
-    ubicacion = models.CharField(max_length=200, blank=True,
-                                 help_text='Ej: Bodega norte, Pasillo 3')
-    compresores_media = models.PositiveSmallIntegerField(default=0,
-                                                         verbose_name='Cantidad compresores media')
-    compresores_baja = models.PositiveSmallIntegerField(default=0,
-                                                        verbose_name='Cantidad compresores baja')
+    capacidad = models.CharField(max_length=50, blank=True, help_text='Ej: 25TR')
+    refrigerante = models.CharField(
+        max_length=20, blank=True, help_text='R410A, R22, R32, R407C, etc.'
+    )
+    voltaje = models.CharField(max_length=50, blank=True, help_text='Ej: 220 V')
+    activo_fijo = models.CharField(max_length=50, blank=True, help_text='Número de activo fijo')
     activo = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name = 'Rack'
-        verbose_name_plural = 'Racks'
-        ordering = ['tienda', 'id_qr']
+        verbose_name = 'Equipo de AA'
+        verbose_name_plural = 'Equipos de AA'
+        ordering = ['cliente', 'nombre']
 
     def __str__(self):
-        return f'{self.id_qr} — {self.tienda.nombre}'
+        return f'{self.nombre} — {self.cliente.nombre}'
 
     @property
-    def total_compresores(self):
-        return (self.compresores_media or 0) + (self.compresores_baja or 0)
+    def es_uca(self):
+        return self.tipo_equipo == TipoEquipo.UCA
 
-
-class Compresor(models.Model):
-    """
-    Detalle técnico de cada compresor individual en un rack.
-    """
-    class Temperatura(models.TextChoices):
-        MEDIA = 'media', 'Media Temperatura'
-        BAJA = 'baja', 'Baja Temperatura'
-
-    rack = models.ForeignKey(Rack, on_delete=models.CASCADE, related_name='detalles_compresores')
-    numero = models.PositiveSmallIntegerField(help_text='Ej: 1, 2, 3...')
-    temperatura = models.CharField(max_length=10, choices=Temperatura.choices)
-    modelo = models.CharField(max_length=100, blank=True)
-    serie = models.CharField(max_length=100, blank=True, verbose_name='Número de serie')
-
-    class Meta:
-        verbose_name = 'Detalle de compresor'
-        verbose_name_plural = 'Detalles de compresores'
-        ordering = ['rack', 'temperatura', 'numero']
-        unique_together = ['rack', 'numero']
-
-    def __str__(self):
-        return f'C{self.numero} ({self.get_temperatura_display()}) — {self.rack.id_qr}'
+    @property
+    def circuitos(self):
+        """Lista de etiquetas de circuito según num_circuitos."""
+        labels = ['A', 'B']
+        return labels[:self.num_circuitos]

@@ -1,288 +1,281 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
-from users.mixins import TecnicoRequiredMixin
-from users.models import Rol
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.utils import timezone
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from django.template.loader import get_template
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from xhtml2pdf import pisa
 import io
-import os
+import json
 
-
-from inventory.models import Rack
-from .models import RegistroActividad, TipoActividad
+from inventory.models import EquipoAA
+from .models import (
+    OrdenServicio, EquipoIntervenido, MedicionUCA, MedicionSplit,
+    Actividad, Observacion, TipoMantenimiento, EstadoOrden
+)
 from .services import (
-    tecnico_tiene_tarea_abierta,
-    obtener_tarea_abierta,
-    iniciar_actividad,
+    tecnico_tiene_preventivo_abierto,
+    obtener_preventivo_abierto,
+    iniciar_orden,
     duracion_minutos,
     es_duracion_sospechosa,
 )
-from .forms import ParametrosEntradaForm, ParametrosSalidaForm, CierreForm
+from .forms import (
+    NuevaOrdenForm, EquipoIntervenidoForm,
+    MedicionUCAForm, MedicionSplitForm,
+    ActividadForm, ActividadCorrectivForm, ObservacionForm,
+)
 
 
-class ScannerView(TecnicoRequiredMixin, View):
-    """Pantalla que activa la cámara para leer el QR del rack."""
-    def get(self, request):
-        tarea_abierta = obtener_tarea_abierta(request.user)
-        racks = Rack.objects.filter(activo=True).order_by('tienda__nombre', 'ubicacion')
-        return render(request, 'operations/scanner.html', {
-            'tarea_abierta': tarea_abierta,
-            'racks': racks,
-        })
-
-
-class FichaTecnicaView(TecnicoRequiredMixin, View):
-    """Ficha del rack + botones Preventivo / Correctivo / Emergencia."""
-    def get(self, request, rack_id):
-        rack = get_object_or_404(Rack, pk=rack_id, activo=True)
-        if tecnico_tiene_tarea_abierta(request.user):
-            tarea = obtener_tarea_abierta(request.user)
-            if tarea.rack_id != rack.id:
-                return render(request, 'operations/bloqueo_tarea.html', {
-                    'tarea_abierta': tarea,
-                    'rack_solicitado': rack,
-                })
-        return render(request, 'operations/ficha_tecnica.html', {
-            'rack': rack,
-            'tipos': TipoActividad.choices,
-        })
-
-
-class IniciarActividadView(TecnicoRequiredMixin, View):
-    """POST: inicia cronómetro y crea registro; redirige a check-in."""
-    def post(self, request, rack_id):
-        rack = get_object_or_404(Rack, pk=rack_id, activo=True)
-        tipo = request.POST.get('tipo_actividad')
-        if not tipo:
-            return redirect('operations:ficha', rack_id=rack_id)
-        try:
-            registro = iniciar_actividad(request.user, rack, tipo)
-            return redirect('operations:checkin', registro_id=registro.pk)
-        except ValueError as e:
-            return render(request, 'operations/ficha_tecnica.html', {
-                'rack': rack,
-                'tipos': TipoActividad.choices,
-                'error': str(e),
-            })
-
-
-class CheckInView(TecnicoRequiredMixin, View):
-    """Parámetros de entrada. No se puede ver check-out hasta guardar."""
-    def get(self, request, registro_id):
-        registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form = ParametrosEntradaForm(initial=registro.datos_entrada or None, rack=registro.rack)
-        return render(request, 'operations/checkin.html', {
-            'registro': registro,
-            'form': form,
-        })
-
-    def post(self, request, registro_id):
-        registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form = ParametrosEntradaForm(request.POST, rack=registro.rack)
-        if form.is_valid():
-            registro.datos_entrada = form.to_json()
-            registro.save(update_fields=['datos_entrada'])
-            return redirect('operations:checkout', registro_id=registro.pk)
-        return render(request, 'operations/checkin.html', {'registro': registro, 'form': form})
-
-
-class SaltarCheckInView(TecnicoRequiredMixin, View):
-    """POST: marca todos los parámetros iniciales como 'No medido' y redirige a cierre."""
-    def post(self, request, registro_id):
-        registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form = ParametrosEntradaForm(rack=registro.rack)
-        # Llenamos el JSON de entrada con "No medido" para cada campo del form
-        datos = {}
-        for field_name in form.fields:
-            datos[field_name] = "No medido"
-        registro.datos_entrada = datos
-        registro.save(update_fields=['datos_entrada'])
-        return redirect('operations:checkout', registro_id=registro.pk)
-
-
-class CheckOutView(TecnicoRequiredMixin, View):
-    """Cierre: mismos parámetros que entrada + observaciones. Al finalizar se graba hora_fin y se bloquea."""
-    def get(self, request, registro_id):
-        registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form_salida = ParametrosSalidaForm(initial=registro.datos_salida or None, rack=registro.rack)
-        form_cierre = CierreForm(initial={'observaciones': registro.observaciones})
-        return render(request, 'operations/checkout.html', {
-            'registro': registro,
-            'form_salida': form_salida,
-            'form_cierre': form_cierre,
-        })
-
-    def post(self, request, registro_id):
-        registro = get_object_or_404(RegistroActividad, pk=registro_id, tecnico=request.user, cerrado=False)
-        form_salida = ParametrosSalidaForm(request.POST, rack=registro.rack)
-        form_cierre = CierreForm(request.POST)
-        if form_salida.is_valid() and form_cierre.is_valid():
-            registro.datos_salida = form_salida.to_json()
-            registro.observaciones = form_cierre.cleaned_data.get('observaciones', '')
-            registro.hora_fin = timezone.now()
-            registro.marcar_cerrado()
-            minutos = duracion_minutos(registro.hora_inicio, registro.hora_fin)
-            alerta_corto = es_duracion_sospechosa(minutos)
-            return render(request, 'operations/actividad_cerrada.html', {
-                'registro': registro,
-                'minutos': minutos,
-                'alerta_corto': alerta_corto,
-            })
-        return render(request, 'operations/checkout.html', {
-            'registro': registro,
-            'form_salida': form_salida,
-            'form_cierre': form_cierre,
-        })
-
-
-# API para el escáner QR (solo técnicos)
-@require_GET
-@login_required
-def api_rack_qr(request, id_qr):
-    """Devuelve JSON del rack. Solo técnicos (supervisores no escanean)."""
-    if getattr(request.user, 'rol', None) != Rol.TECNICO:
-        return JsonResponse({'ok': False, 'error': 'Solo técnicos pueden escanear.'}, status=403)
-    rack = get_object_or_404(Rack, id_qr=id_qr, activo=True)
-    return JsonResponse({
-        'ok': True,
-        'id': rack.pk,
-        'id_qr': rack.id_qr,
-        'tienda': rack.tienda.nombre,
-        'marca': rack.marca,
-        'ubicacion': rack.ubicacion,
-        'compresores_media': rack.compresores_media,
-        'compresores_baja': rack.compresores_baja,
-    })
-
-
+# ─────────────────────────────────────────────────────────
+# Helper: xhtml2pdf link callback
+# ─────────────────────────────────────────────────────────
 def link_callback(uri, rel):
-    """
-    Convierte URIs de static/media en rutas de archivos absolutas para que pisa las encuentre.
-    """
     import os
-    s_url = settings.STATIC_URL     # e.g., '/static/'
-    m_url = settings.MEDIA_URL      # e.g., '/media/' or '/'
-
-    # 1. Determinar el path relativo y el directorio base
-    # PRIORIDAD: Estáticos primero para evitar que MEDIA_URL="/" capture todo
+    s_url = settings.STATIC_URL
+    m_url = getattr(settings, 'MEDIA_URL', '/media/')
     path = None
-    relative_path = None
-    
     if uri.startswith(s_url):
-        relative_path = uri.replace(s_url, "", 1).lstrip('/')
-        # Buscar en STATICFILES_DIRS (desarrollo)
-        if settings.STATICFILES_DIRS:
-            for d in settings.STATICFILES_DIRS:
-                trial = os.path.join(d, relative_path)
-                if os.path.exists(trial):
-                    path = trial
-                    break
-        # Si no, buscar en STATIC_ROOT (producción)
+        relative_path = uri.replace(s_url, '', 1).lstrip('/')
+        for d in getattr(settings, 'STATICFILES_DIRS', []):
+            trial = os.path.join(d, relative_path)
+            if os.path.exists(trial):
+                path = trial
+                break
         if not path:
             path = os.path.join(settings.STATIC_ROOT, relative_path)
-            
     elif m_url and uri.startswith(m_url):
-        relative_path = uri.replace(m_url, "", 1).lstrip('/')
+        relative_path = uri.replace(m_url, '', 1).lstrip('/')
         path = os.path.join(settings.MEDIA_ROOT, relative_path)
-
-    # Si encontramos una ruta física y es un archivo, retornarla
     if path and os.path.isfile(path):
         return path
-    
-    # Fallback por si la URI ya es una ruta absoluta o no se pudo resolver
     return uri
 
 
-class IntervencionPDFView(View):
-    """Genera el reporte PDF de la intervención técnica."""
-    def get(self, request, registro_id):
-        # Permitimos ver a técnicos y supervisores
-        registro = get_object_or_404(RegistroActividad, pk=registro_id)
-        
-        # Preparar datos de compresores
-        rack = registro.rack
-        n_compresores = rack.total_compresores
-        media_count = rack.compresores_media
-        
-        compresores_media = []
-        compresores_baja = []
-        
-        # Sacamos los datos finales (datos_salida) si existen, si no, iniciales
-        datos = registro.datos_salida if registro.datos_salida else registro.datos_entrada
-        
-        # Mapear detalles técnicos de compresores (modelo y serie)
-        detalles_map = {c.numero: c for c in rack.detalles_compresores.all()}
-        
-        for i in range(1, n_compresores + 1):
-            detalle = detalles_map.get(i)
-            comp_data = {
-                'numero': i,
-                'modelo': detalle.modelo if detalle else '—',
-                'serie': detalle.serie if detalle else '—',
-                'corriente': datos.get(f'corriente_compresor_{i}', '—'),
-                'estado_aceite': datos.get(f'estado_aceite_{i}', '—'),
-                'nivel_aceite': datos.get(f'nivel_aceite_{i}', '—'),
-                'ruido': datos.get(f'ruido_{i}', '—'),
-                'dispara_aceite': datos.get(f'dispara_aceite_{i}', '—'),
-                'dispara_presion': datos.get(f'dispara_presion_{i}', '—'),
-                'funciona_traxoil': datos.get(f'funciona_traxoil_{i}', '—'),
-            }
-            if i <= media_count:
-                compresores_media.append(comp_data)
+# ─────────────────────────────────────────────────────────
+# FichaEquipoView: mostrar ficha y botones Preventivo/Correctivo
+# ─────────────────────────────────────────────────────────
+class FichaEquipoView(LoginRequiredMixin, View):
+    """Muestra la ficha del equipo de AA con botones de tipo de mantenimiento."""
+    def get(self, request, equipo_id):
+        equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
+        preventivo_abierto = obtener_preventivo_abierto(request.user)
+        return render(request, 'operations/ficha_equipo.html', {
+            'equipo': equipo,
+            'preventivo_abierto': preventivo_abierto,
+        })
+
+
+# ─────────────────────────────────────────────────────────
+# NuevaOrdenView: GET form (tipo + radicado + encabezado)
+# ─────────────────────────────────────────────────────────
+class NuevaOrdenView(LoginRequiredMixin, View):
+    """Formulario para elegir tipo, ingresar radicado y datos del encabezado."""
+    def get(self, request, equipo_id):
+        equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
+        # Bloquear si hay preventivo abierto
+        preventivo_abierto = obtener_preventivo_abierto(request.user)
+        if preventivo_abierto:
+            return render(request, 'operations/bloqueo_preventivo.html', {
+                'preventivo_abierto': preventivo_abierto,
+                'equipo': equipo,
+            })
+        form = NuevaOrdenForm(initial={
+            'cliente_nombre': equipo.cliente.nombre,
+            'dir_cliente': equipo.cliente.dir_cliente,
+            'fecha': timezone.localdate(),
+            'mes': timezone.localdate().strftime('%-m/%Y') if hasattr(timezone.localdate(), 'strftime') else '',
+        })
+        return render(request, 'operations/nueva_orden.html', {
+            'equipo': equipo,
+            'form': form,
+        })
+
+    def post(self, request, equipo_id):
+        equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
+        form = NuevaOrdenForm(request.POST)
+        if form.is_valid():
+            try:
+                tipo = form.cleaned_data['tipo']
+                radicado = form.get_radicado()
+                orden = iniciar_orden(
+                    tecnico=request.user,
+                    equipo=equipo,
+                    tipo=tipo,
+                    radicado=radicado,
+                    cliente_nombre=form.cleaned_data['cliente_nombre'],
+                    dir_cliente=form.cleaned_data.get('dir_cliente', ''),
+                    num_orden=form.cleaned_data.get('num_orden', ''),
+                    fecha=form.cleaned_data['fecha'],
+                    mes=form.cleaned_data.get('mes', ''),
+                )
+                return redirect('operations:formulario_orden', orden_id=orden.pk)
+            except ValueError as e:
+                return render(request, 'operations/bloqueo_preventivo.html', {
+                    'preventivo_abierto': obtener_preventivo_abierto(request.user),
+                    'equipo': equipo,
+                    'error': str(e),
+                })
+        return render(request, 'operations/nueva_orden.html', {
+            'equipo': equipo,
+            'form': form,
+        })
+
+
+# ─────────────────────────────────────────────────────────
+# FormularioOrdenView: formulario completo multi-equipo
+# ─────────────────────────────────────────────────────────
+class FormularioOrdenView(LoginRequiredMixin, View):
+    """Formulario completo: actividades + equipos intervenidos + mediciones."""
+
+    def _get_context(self, orden):
+        equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
+            'mediciones_uca', 'medicion_split', 'observacion'
+        ).all()
+        actividades = orden.actividades.all()
+        return {
+            'orden': orden,
+            'equipo': orden.equipo,
+            'equipos_intervenidos': equipos_intervenidos,
+            'actividades': actividades,
+            'equipo_form': EquipoIntervenidoForm(),
+            'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
+        }
+
+    def get(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+        return render(request, 'operations/formulario_orden.html', self._get_context(orden))
+
+
+# ─────────────────────────────────────────────────────────
+# AgregarEquipoView: agrega un EquipoIntervenido y sus mediciones
+# ─────────────────────────────────────────────────────────
+class AgregarEquipoView(LoginRequiredMixin, View):
+    """POST: agrega un equipo intervenido con sus mediciones a la orden."""
+
+    def post(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+        equipo_form = EquipoIntervenidoForm(request.POST)
+
+        if equipo_form.is_valid():
+            ei = equipo_form.save(commit=False)
+            ei.orden = orden
+            ei.save()
+
+            tipo_eq = request.POST.get('tipo_medicion', 'uca')  # 'uca' o 'split'
+
+            if tipo_eq == 'uca':
+                circuit_labels = request.POST.getlist('circuito_label')
+                for label in circuit_labels:
+                    prefix = f'circ_{label}_'
+                    MedicionUCA.objects.create(
+                        equipo_intervenido=ei,
+                        circuito=label,
+                        baja_p_antes=request.POST.get(f'{prefix}baja_antes') or None,
+                        baja_p_despues=request.POST.get(f'{prefix}baja_despues') or None,
+                        alta_p_antes=request.POST.get(f'{prefix}alta_antes') or None,
+                        alta_p_despues=request.POST.get(f'{prefix}alta_despues') or None,
+                    )
             else:
-                compresores_baja.append(comp_data)
+                MedicionSplit.objects.create(
+                    equipo_intervenido=ei,
+                    temp_sumin_antes=request.POST.get('temp_sumin_antes') or None,
+                    temp_sumin_despues=request.POST.get('temp_sumin_despues') or None,
+                    temp_retorno_antes=request.POST.get('temp_retorno_antes') or None,
+                    temp_retorno_despues=request.POST.get('temp_retorno_despues') or None,
+                )
+
+            obs_texto = request.POST.get('observacion', '').strip()
+            Observacion.objects.create(equipo_intervenido=ei, texto=obs_texto)
+
+        return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
+# ActualizarActividadesView: guarda el checklist de actividades
+# ─────────────────────────────────────────────────────────
+class ActualizarActividadesView(LoginRequiredMixin, View):
+    """POST: actualiza el checklist (preventivo) o texto libre (correctivo)."""
+
+    def post(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+
+        if orden.tipo == TipoMantenimiento.PREVENTIVO:
+            marcadas = set(request.POST.getlist('actividad_marcada'))
+            for act in orden.actividades.all():
+                act.marcada = str(act.pk) in marcadas
+                act.save(update_fields=['marcada'])
+        else:
+            texto = request.POST.get('actividades_texto', '')
+            # Para correctivos guardamos el texto como una única actividad
+            orden.actividades.all().delete()
+            if texto.strip():
+                Actividad.objects.create(orden=orden, texto=texto, marcada=True)
+
+        return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
+# FinalizarOrdenView: cierra la orden y genera PDF
+# ─────────────────────────────────────────────────────────
+class FinalizarOrdenView(LoginRequiredMixin, View):
+    """POST: cierra la orden, genera y guarda el PDF."""
+
+    def post(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+        orden.marcar_cerrado()
+        return redirect('operations:orden_cerrada', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
+# OrdenCerradaView: confirmación de cierre
+# ─────────────────────────────────────────────────────────
+class OrdenCerradaView(LoginRequiredMixin, View):
+    def get(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
+        minutos = duracion_minutos(orden.hora_inicio, orden.hora_fin)
+        return render(request, 'operations/orden_cerrada.html', {
+            'orden': orden,
+            'minutos': minutos,
+            'alerta_corto': es_duracion_sospechosa(minutos),
+        })
+
+
+# ─────────────────────────────────────────────────────────
+# PDFOrdenView: genera el PDF FT-GM-41
+# ─────────────────────────────────────────────────────────
+class PDFOrdenView(LoginRequiredMixin, View):
+    """Genera y sirve el PDF de la orden en formato FT-GM-41."""
+
+    def get(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id)
+        equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
+            'mediciones_uca', 'medicion_split', 'observacion'
+        ).all()
+        actividades = orden.actividades.all()
 
         context = {
-            'registro': registro,
-            'rack': rack,
-            'compresores_media': compresores_media,
-            'compresores_baja': compresores_baja,
-            'datos': datos,
-            'fecha': registro.hora_fin or registro.hora_inicio,
+            'orden': orden,
+            'equipo': orden.equipo,
+            'equipos_intervenidos': equipos_intervenidos,
+            'actividades': actividades,
+            'fecha': orden.hora_fin or orden.hora_inicio,
+            'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
         }
 
-        # Mapeo de legibilidad para campos generales del Rack
-        mapeo_rack = {
-            'ajuste_refrigerante': {'si': 'SÍ', 'no': 'NO'},
-            'condensador_limpio': {'limpio': 'LIMPIO', 'sucio': 'SUCIO'},
-            'nivel_acumulador': {'alto': 'ALTO', 'medio': 'MEDIO', 'bajo': 'BAJO'},
-            'ventiladores_condensadora': {
-                'todos_ok': 'TODOS OPERATIVOS',
-                'un_averiado': 'UN VENTILADOR AVERIADO',
-                'varios_averiados': 'MÁS DE UN VENTILADOR AVERIADO'
-            },
-            'aislamiento_tuberias': {'bueno': 'BUENAS CONDICIONES', 'malo': 'MALAS CONDICIONES'},
-            'valvulas_cierre': {'bueno': 'BUENAS CONDICIONES', 'malo': 'MALAS CONDICIONES'},
-            'manifolds_recibidores': {'bueno': 'BUENAS CONDICIONES', 'malo': 'MALAS CONDICIONES'},
-        }
-        
-        # Crear un diccionario con valores legibles
-        readable = {}
-        for key, val in datos.items():
-            if key in mapeo_rack and val in mapeo_rack[key]:
-                readable[key] = mapeo_rack[key][val]
-            else:
-                readable[key] = val
-        
-        context['readable'] = readable
-
-        # Renderizar a PDF
-        template = get_template('operations/reporte_pdf.html')
+        template = get_template('operations/reporte_pdf_aa.html')
         html = template.render(context)
-        
+
         result = io.BytesIO()
-        pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result, link_callback=link_callback)
-        
+        pdf = pisa.pisaDocument(io.BytesIO(html.encode('UTF-8')), result, link_callback=link_callback)
+
         if not pdf.err:
             response = HttpResponse(result.getvalue(), content_type='application/pdf')
-            filename = f"Reporte_{rack.id_qr}_{context['fecha'].strftime('%Y%m%d')}.pdf"
+            filename = f"FT-GM-41_{orden.radicado}_{context['fecha'].strftime('%Y%m%d')}.pdf"
             response['Content-Disposition'] = f'inline; filename="{filename}"'
             return response
-            
-        return HttpResponse("Error al generar PDF", status=500)
+
+        return HttpResponse('Error al generar PDF', status=500)

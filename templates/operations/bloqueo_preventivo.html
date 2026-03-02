@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Preventivo Bloqueado{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+    <div class="mb-4" style="font-size:4rem;">🔒</div>
+    <h2 class="fw-bold text-primary">Preventivo en Curso</h2>
+    <p class="text-muted">Debes finalizar el mantenimiento preventivo abierto antes de iniciar uno nuevo.</p>
+
+    <div class="card mx-auto mt-4" style="max-width:420px;">
+        <div class="card-body text-start">
+            <div class="text-muted small mb-1">Radicado abierto</div>
+            <div class="radicado-badge mb-2">{{ preventivo_abierto.radicado }}</div>
+            <div class="fw-semibold">{{ preventivo_abierto.equipo.nombre }}</div>
+            <div class="text-muted small">{{ preventivo_abierto.equipo.cliente.nombre }}</div>
+            <div class="text-muted small">Iniciado: {{ preventivo_abierto.hora_inicio|date:"d/m/Y H:i" }}</div>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex flex-column gap-2 align-items-center">
+        <a href="{% url 'operations:formulario_orden' preventivo_abierto.pk %}" class="btn btn-roa-primary px-5">
+            <i class="bi bi-arrow-right-circle me-1"></i>Continuar Preventivo
+        </a>
+        <a href="{% url 'inventory:clientes' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-house-door me-1"></i>Volver al Inicio
+        </a>
+    </div>
+</div>
+{% endblock %}

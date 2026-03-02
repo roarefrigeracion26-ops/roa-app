@@ -21,5 +21,5 @@ class SupervisorRequiredMixin(LoginRequiredMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         if getattr(request.user, 'rol', None) != Rol.SUPERVISOR:
-            return redirect('operations:scanner')
+            return redirect('inventory:clientes')
         return super().dispatch(request, *args, **kwargs)

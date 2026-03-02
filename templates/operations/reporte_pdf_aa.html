@@ -1,0 +1,342 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm 10mm;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9pt;
+            color: #111;
+            margin: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        td,
+        th {
+            border: 1px solid #333;
+            padding: 3px 5px;
+        }
+
+        th {
+            background: #1565C0;
+            color: #fff;
+            font-weight: bold;
+            text-align: center;
+            font-size: 8.5pt;
+        }
+
+        .no-border td {
+            border: none;
+        }
+
+        h2 {
+            font-size: 11pt;
+            color: #1565C0;
+            margin: 0;
+        }
+
+        h3 {
+            font-size: 9pt;
+            color: #1565C0;
+            margin: 6px 0 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-table td {
+            border: 1px solid #333;
+            vertical-align: middle;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .gold {
+            color: #B8860B;
+        }
+
+        .label-cell {
+            background: #E3F2FD;
+            font-weight: bold;
+            font-size: 8pt;
+            width: 32%;
+        }
+
+        .radicado {
+            color: #B8860B;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+
+        .section-bar {
+            background: #1565C0;
+            color: #fff;
+            font-weight: bold;
+            padding: 3px 6px;
+            font-size: 9pt;
+            margin-top: 5px;
+        }
+
+        .checkmark {
+            font-size: 11pt;
+        }
+
+        .footnote {
+            font-size: 7.5pt;
+            color: #555;
+            text-align: center;
+            margin-top: 8px;
+            border-top: 1px solid #ccc;
+            padding-top: 4px;
+        }
+
+        .equipo-block {
+            border: 1px solid #1565C0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            padding: 5px;
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ══════════════ ENCABEZADO ══════════════ -->
+    <table class="header-table" style="margin-bottom:6px;">
+        <tr>
+            <td style="width:22%;text-align:center;padding:6px;">
+                <div style="font-size:16pt;font-weight:900;color:#1565C0;letter-spacing:2px;">ROA</div>
+                <div style="font-size:6pt;color:#B8860B;font-weight:bold;letter-spacing:1px;">REFRIGERACIÓN INGENIERÍA
+                    S.A.S.</div>
+            </td>
+            <td style="text-align:center;padding:4px;">
+                <div style="font-size:11pt;font-weight:bold;color:#1565C0;">ROA REFRIGERACIÓN INGENIERÍA S.A.S.</div>
+                <div style="font-size:9pt;font-weight:bold;">DEPARTAMENTO DE MANTENIMIENTO</div>
+                <div style="font-size:9pt;" class="gold">MANTENIMIENTO DE EQUIPOS DE AIRE ACONDICIONADO</div>
+            </td>
+            <td style="width:24%;font-size:7.5pt;padding:4px;">
+                <table style="margin:0;font-size:7.5pt;">
+                    <tr>
+                        <td class="label-cell">Código</td>
+                        <td>FT-GM-41</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Versión</td>
+                        <td>01</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Vigencia</td>
+                        <td>{{ fecha|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Mes</td>
+                        <td>{{ orden.mes }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ══════════════ DATOS GENERALES ══════════════ -->
+    <div class="section-bar">DATOS GENERALES</div>
+    <table style="margin-top:3px;">
+        <tr>
+            <td class="label-cell">Cliente</td>
+            <td colspan="3" class="bold">{{ orden.cliente_nombre }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Dir. Cliente</td>
+            <td>{{ orden.dir_cliente|default:"—" }}</td>
+            <td class="label-cell">No. Orden de Servicio</td>
+            <td>{{ orden.num_orden|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Fecha</td>
+            <td>{{ orden.fecha|date:"d/m/Y" }}</td>
+            <td class="label-cell">Radicado No.</td>
+            <td class="radicado">{{ orden.radicado }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Actividad</td>
+            <td colspan="3" class="bold">{{ orden.get_tipo_display }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Técnico</td>
+            <td colspan="3">{{ orden.tecnico.nombre_completo|default:orden.tecnico.username }}</td>
+        </tr>
+    </table>
+
+    <!-- ══════════════ ACTIVIDADES REALIZADAS ══════════════ -->
+    <div class="section-bar" style="margin-top:5px;">ACTIVIDADES REALIZADAS</div>
+    {% if es_preventivo %}
+    <table style="margin-top:3px;">
+        {% with acts=actividades|list %}
+        {% for i in "0123456789" %}
+        {% with idx=forloop.counter0 %}
+        {% endwith %}
+        {% endfor %}
+        <!-- Render activities in 2-column layout -->
+        <tr>
+            {% for act in actividades %}
+            {% if forloop.counter <= 5 %} <td style="width:4%;text-align:center;" class="checkmark">{% if act.marcada
+                %}☑{% else %}☐{% endif %}</td>
+                <td style="width:46%;">{{ act.texto }}</td>
+                {% endif %}
+                {% endfor %}
+        </tr>
+        <tr>
+            {% for act in actividades %}
+            {% if forloop.counter > 5 %}
+            <td style="width:4%;text-align:center;" class="checkmark">{% if act.marcada %}☑{% else %}☐{% endif %}</td>
+            <td style="width:46%;">{{ act.texto }}</td>
+            {% endif %}
+            {% endfor %}
+        </tr>
+        {% endwith %}
+    </table>
+    {% else %}
+    <table style="margin-top:3px;">
+        <tr>
+            <td>
+                {% for act in actividades %}{{ act.texto }}{% endfor %}
+            </td>
+        </tr>
+    </table>
+    {% endif %}
+
+    <!-- ══════════════ EQUIPOS INTERVENIDOS ══════════════ -->
+    {% for ei in equipos_intervenidos %}
+    <div class="section-bar" style="margin-top:6px;">EQUIPO INTERVENIDO: {{ ei.nombre_equipo }}</div>
+
+    <table style="margin-top:3px;">
+        <tr>
+            <td class="label-cell">Nombre</td>
+            <td>{{ ei.nombre_equipo }}</td>
+            <td class="label-cell">Ubicación</td>
+            <td>{{ ei.ubicacion|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Tipo</td>
+            <td>{{ ei.tipo_equipo|default:"—" }}</td>
+            <td class="label-cell">Marca</td>
+            <td>{{ ei.marca|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Modelo</td>
+            <td>{{ ei.modelo|default:"—" }}</td>
+            <td class="label-cell">Capacidad</td>
+            <td>{{ ei.capacidad|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Refrigerante</td>
+            <td>{{ ei.refrigerante|default:"—" }}</td>
+            <td class="label-cell">Voltaje</td>
+            <td>{{ ei.voltaje|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Corriente L1/L2/L3 (A)</td>
+            <td>{{ ei.corriente_l1|default:"—" }} / {{ ei.corriente_l2|default:"—" }} / {{ ei.corriente_l3|default:"—"
+                }}</td>
+            <td class="label-cell">Amperaje L1/L2/L3 (A)</td>
+            <td>{{ ei.amperaje_l1|default:"—" }} / {{ ei.amperaje_l2|default:"—" }} / {{ ei.amperaje_l3|default:"—" }}
+            </td>
+        </tr>
+        <tr>
+            <td class="label-cell">Fases / Frecuencia</td>
+            <td>{{ ei.fases|default:"—" }}</td>
+            <td class="label-cell">Tipo de Correa</td>
+            <td>{{ ei.tipo_correa|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Activo Fijo</td>
+            <td colspan="3">{{ ei.activo_fijo|default:"—" }}</td>
+        </tr>
+    </table>
+
+    <!-- Mediciones UCA -->
+    {% if ei.mediciones_uca.exists %}
+    <table style="margin-top:4px;">
+        <tr>
+            <th>Circuito</th>
+            <th>Parámetro</th>
+            <th>Antes (PSI)</th>
+            <th>Después (PSI)</th>
+        </tr>
+        {% for m in ei.mediciones_uca.all %}
+        <tr>
+            <td class="center bold" rowspan="2">{{ m.circuito }}</td>
+            <td>Baja Presión</td>
+            <td class="center">{{ m.baja_p_antes|default:"—" }}</td>
+            <td class="center">{{ m.baja_p_despues|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td>Alta Presión</td>
+            <td class="center">{{ m.alta_p_antes|default:"—" }}</td>
+            <td class="center">{{ m.alta_p_despues|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <!-- Mediciones Split/UMA -->
+    {% with ms=ei.medicion_split %}
+    {% if ms %}
+    <table style="margin-top:4px;">
+        <tr>
+            <th>Parámetro</th>
+            <th>Antes (°C)</th>
+            <th>Después (°C)</th>
+        </tr>
+        <tr>
+            <td>Temperatura de Suministro</td>
+            <td class="center">{{ ms.temp_sumin_antes|default:"—" }}</td>
+            <td class="center">{{ ms.temp_sumin_despues|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td>Temperatura de Retorno</td>
+            <td class="center">{{ ms.temp_retorno_antes|default:"—" }}</td>
+            <td class="center">{{ ms.temp_retorno_despues|default:"—" }}</td>
+        </tr>
+    </table>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Observaciones -->
+    {% with obs=ei.observacion %}
+    <table style="margin-top:3px;">
+        <tr>
+            <td class="label-cell" style="width:20%;">Observaciones</td>
+            <td>{% if obs %}{{ obs.texto|default:"—" }}{% else %}—{% endif %}</td>
+        </tr>
+    </table>
+    {% endwith %}
+    {% endfor %}
+
+    <!-- ══════════════ PIE DE PÁGINA ══════════════ -->
+    <div class="footnote">
+        Elaborado por <strong>Roa Refrigeración Ingeniería S.A.S.</strong> — www.roarefrigeracion.com |
+        Código: FT-GM-41 | Hora inicio: {{ orden.hora_inicio|date:"d/m/Y H:i" }}
+        {% if orden.hora_fin %} | Hora fin: {{ orden.hora_fin|date:"H:i" }}{% endif %}
+    </div>
+
+</body>
+
+</html>

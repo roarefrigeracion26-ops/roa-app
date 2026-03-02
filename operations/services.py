@@ -1,57 +1,71 @@
 """
-Lógica del cronómetro y validaciones de negocio.
+Lógica de negocio para órdenes de servicio SGMAA.
+Regla clave: SOLO el Preventivo (MP) bloquea nuevas tareas.
+El Correctivo (MC) puede coexistir con otros documentos abiertos.
 """
 from django.utils import timezone
-from django.db.models import Q
-
-from .models import RegistroActividad, TipoActividad
+from .models import OrdenServicio, TipoMantenimiento, EstadoOrden, ACTIVIDADES_PREVENTIVO, Actividad
 
 
-def tecnico_tiene_tarea_abierta(tecnico):
-    """True si el técnico tiene un registro sin cerrar (sin hora_fin)."""
-    return RegistroActividad.objects.filter(
+def tecnico_tiene_preventivo_abierto(tecnico):
+    """True si el técnico tiene un Preventivo (MP) sin cerrar."""
+    return OrdenServicio.objects.filter(
         tecnico=tecnico,
-        hora_fin__isnull=True,
-        cerrado=False
+        tipo=TipoMantenimiento.PREVENTIVO,
+        estado=EstadoOrden.ABIERTO,
     ).exists()
 
 
-def obtener_tarea_abierta(tecnico):
-    """Devuelve el RegistroActividad abierto del técnico o None."""
-    return RegistroActividad.objects.filter(
+def obtener_preventivo_abierto(tecnico):
+    """Devuelve la OrdenServicio preventiva abierta o None."""
+    return OrdenServicio.objects.filter(
         tecnico=tecnico,
-        hora_fin__isnull=True,
-        cerrado=False
-    ).first()
+        tipo=TipoMantenimiento.PREVENTIVO,
+        estado=EstadoOrden.ABIERTO,
+    ).select_related('equipo', 'equipo__cliente').first()
 
 
-def iniciar_actividad(tecnico, rack, tipo_actividad):
+def iniciar_orden(tecnico, equipo, tipo, radicado, cliente_nombre, dir_cliente,
+                  num_orden, fecha, mes):
     """
-    Crea el registro y arranca el cronómetro en el servidor.
-    Lanza ValueError si el técnico ya tiene una tarea abierta.
+    Crea una OrdenServicio.
+    Lanza ValueError solo si tipo==MP y ya hay un preventivo abierto.
+    Correctivos NUNCA bloquean.
     """
-    if tecnico_tiene_tarea_abierta(tecnico):
-        raise ValueError('Tienes abierta una actividad en otro equipo, ciérrala para avanzar con otro.')
-    if tipo_actividad not in [c[0] for c in TipoActividad.choices]:
-        raise ValueError('Tipo de actividad no válido.')
-    return RegistroActividad.objects.create(
-        rack=rack,
+    if tipo == TipoMantenimiento.PREVENTIVO and tecnico_tiene_preventivo_abierto(tecnico):
+        raise ValueError(
+            'Tienes un Preventivo Tipo A abierto. Debes finalizarlo antes de iniciar otro mantenimiento preventivo.'
+        )
+    orden = OrdenServicio.objects.create(
+        equipo=equipo,
         tecnico=tecnico,
-        tipo_actividad=tipo_actividad,
+        tipo=tipo,
+        radicado=radicado,
+        cliente_nombre=cliente_nombre,
+        dir_cliente=dir_cliente,
+        num_orden=num_orden,
+        fecha=fecha,
+        mes=mes,
         hora_inicio=timezone.now(),
+        estado=EstadoOrden.ABIERTO,
     )
+    # Para preventivos, crear checklist predefinido
+    if tipo == TipoMantenimiento.PREVENTIVO:
+        Actividad.objects.bulk_create([
+            Actividad(orden=orden, texto=texto, marcada=True)
+            for texto in ACTIVIDADES_PREVENTIVO
+        ])
+    return orden
 
 
 def duracion_minutos(hora_inicio, hora_fin):
-    """Calcula duración en minutos. None si falta hora_fin."""
     if not hora_fin:
         return None
     delta = hora_fin - hora_inicio
     return round(delta.total_seconds() / 60, 1)
 
 
-def es_duracion_sospechosa(minutos, umbral_minutos=5):
-    """Alertar si el tiempo es sospechosamente corto (ej. &lt; 5 min)."""
+def es_duracion_sospechosa(minutos, umbral_minutos=10):
     if minutos is None:
         return False
     return minutos < umbral_minutos
