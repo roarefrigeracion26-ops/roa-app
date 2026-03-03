@@ -109,8 +109,6 @@
         </button>
     </div>
     <div class="card-body p-0">
-
-        <!-- Formulario agregar equipo (colapsable) -->
         <div class="collapse" id="formAgregar">
             <form method="post" action="{% url 'operations:agregar_equipo' orden.pk %}" id="form-agregar-equipo">
                 {% csrf_token %}
@@ -119,255 +117,105 @@
                     <div class="mb-3 p-3 bg-light rounded border border-primary border-opacity-25">
                         <label class="form-label text-primary fw-bold"><i class="bi bi-magic me-1"></i>Autocompletar
                             Equipo de la Tienda</label>
-                        <select class="form-select border-primary" id="sel-autocompletar-equipo"
-                            onchange="autocompletarEquipo(this.value)">
-                            <option value="">— Llenar manualmente o seleccionar de la base de datos —</option>
+                        <select class="form-select border-primary" onchange="autocompletarEquipo(this.value)">
+                            <option value="">— Seleccionar —</option>
                             {% for eq in equipos_db %}
                             <option value="{{ eq.id }}">{{ eq.nombre }} ({{ eq.tipo_equipo }})</option>
                             {% endfor %}
                         </select>
-                        <div class="form-text small"><i class="bi bi-info-circle me-1"></i>Al elegir un equipo, sus
-                            datos (Marca, Modelo, Voltaje, etc) se completarán.</div>
                     </div>
                     {% endif %}
 
                     <p class="section-title">Datos Ténicos del Equipo</p>
                     <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label">Nombre del equipo *</label>
-                            <input type="text" name="nombre_equipo" class="form-control" placeholder="Ej: UCA 1"
-                                required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Ubicación</label>
-                            <input type="text" name="ubicacion" class="form-control" placeholder="Ej: AZOTEA">
-                        </div>
+                        <div class="col-6"><label class="form-label">Nombre *</label><input type="text"
+                                name="nombre_equipo" class="form-control" required></div>
+                        <div class="col-6"><label class="form-label">Ubicación</label><input type="text"
+                                name="ubicacion" class="form-control"></div>
                         <div class="col-6">
                             <label class="form-label">Tipo equipo</label>
                             <select name="tipo_equipo" class="form-select" id="sel-tipo-eq" onchange="updateTipoEq()">
-                                <option value="">— Seleccionar —</option>
                                 <option value="UCA">UCA</option>
                                 <option value="UMA">UMA</option>
                                 <option value="SPLIT">Split</option>
-                                <option value="CASSETTE">Cassette</option>
-                                <option value="PISO_TECHO">Piso Techo</option>
                                 <option value="OTRO">Otro</option>
                             </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label">Refrigerante</label>
-                            <select name="refrigerante" class="form-select">
-                                <option value="">—</option>
-                                <option>R410A</option>
-                                <option>R22</option>
-                                <option>R32</option>
-                                <option>R407C</option>
-                                <option>R134A</option>
-                                <option>R404A</option>
-                                <option>Otro</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Marca</label>
-                            <input type="text" name="marca" class="form-control" placeholder="Ej: CONFORTFRESH">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Modelo</label>
-                            <input type="text" name="modelo" class="form-control" placeholder="Ej: CPV13300X2">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Capacidad</label>
-                            <input type="text" name="capacidad" class="form-control" placeholder="25TR">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Voltaje</label>
-                            <input type="text" name="voltaje" class="form-control" placeholder="220 V">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Fases/Frec.</label>
-                            <input type="text" name="fases" class="form-control" placeholder="3 PH 60HZ">
-                        </div>
+                        <div class="col-6"><label class="form-label">Refrig.</label><input type="text"
+                                name="refrigerante" class="form-control"></div>
+                        <div class="col-6"><label class="form-label">Marca</label><input type="text" name="marca"
+                                class="form-control"></div>
+                        <div class="col-6"><label class="form-label">Modelo</label><input type="text" name="modelo"
+                                class="form-control"></div>
+                        <div class="col-4"><label class="form-label">Capac.</label><input type="text" name="capacidad"
+                                class="form-control"></div>
+                        <div class="col-4"><label class="form-label">Volt.</label><input type="text" name="voltaje"
+                                class="form-control"></div>
+                        <div class="col-4"><label class="form-label">Fases</label><input type="text" name="fases"
+                                class="form-control"></div>
                     </div>
-                    <!-- Corriente / Amperaje -->
-                    <p class="section-title mt-3">Corriente L1/L2/L3 (A)</p>
-                    <div class="row g-2">
-                        <div class="col-4"><input type="number" name="corriente_l1" class="form-control"
-                                placeholder="L1" step="0.01" inputmode="decimal"></div>
-                        <div class="col-4"><input type="number" name="corriente_l2" class="form-control"
-                                placeholder="L2" step="0.01" inputmode="decimal"></div>
-                        <div class="col-4"><input type="number" name="corriente_l3" class="form-control"
-                                placeholder="L3" step="0.01" inputmode="decimal"></div>
-                    </div>
-                    <p class="section-title mt-3">Amperaje L1/L2/L3 (A)</p>
-                    <div class="row g-2">
-                        <div class="col-4"><input type="number" name="amperaje_l1" class="form-control" placeholder="L1"
-                                step="0.01" inputmode="decimal"></div>
-                        <div class="col-4"><input type="number" name="amperaje_l2" class="form-control" placeholder="L2"
-                                step="0.01" inputmode="decimal"></div>
-                        <div class="col-4"><input type="number" name="amperaje_l3" class="form-control" placeholder="L3"
-                                step="0.01" inputmode="decimal"></div>
-                    </div>
-                    <div class="row g-2 mt-1">
-                        <div class="col-6">
-                            <label class="form-label">Tipo de Correa</label>
-                            <input type="text" name="tipo_correa" class="form-control" placeholder="Ej: BX38">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Activo Fijo</label>
-                            <input type="text" name="activo_fijo" class="form-control" placeholder="1433977">
-                        </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6"><label class="form-label">Correa</label><input type="text" name="tipo_correa"
+                                class="form-control"></div>
+                        <div class="col-6"><label class="form-label">Activo F.</label><input type="text"
+                                name="activo_fijo" class="form-control"></div>
                     </div>
 
-                    <!-- Mediciones -->
                     <p class="section-title mt-3">Mediciones</p>
                     <div class="d-flex gap-2 mb-2">
-                        <label class="tab-tipo active-uca" id="tab-uca" onclick="setMedicion('uca')">
-                            <input type="radio" name="tipo_medicion" value="uca" checked class="d-none"> 🧊 UCA
-                            (Presiones)
-                        </label>
-                        <label class="tab-tipo" id="tab-split" onclick="setMedicion('split')">
-                            <input type="radio" name="tipo_medicion" value="split" class="d-none"> 🌡️ UMA / Split
-                            (Temp.)
-                        </label>
+                        <label class="tab-tipo active-uca" id="tab-uca" onclick="setMedicion('uca')">Presiones</label>
+                        <label class="tab-tipo" id="tab-split" onclick="setMedicion('split')">Temperaturas</label>
+                        <input type="radio" name="tipo_medicion" value="uca" checked class="d-none">
+                        <input type="radio" name="tipo_medicion" value="split" class="d-none">
                     </div>
 
-                    <!-- UCA panels -->
                     <div id="panel-uca" class="seccion-medicion p-3">
-                        <div id="circuitos-container">
-                            <!-- Circuito A siempre -->
-                            <div class="mb-3">
-                                <input type="hidden" name="circuito_label" value="A">
-                                <p class="fw-bold mb-2">Circuito A</p>
-                                <div class="row g-2">
-                                    <div class="col-6"><label class="form-label small">Baja P. Antes (PSI)</label><input
-                                            type="number" name="circ_A_baja_antes" class="form-control" step="0.01"
-                                            inputmode="decimal"></div>
-                                    <div class="col-6"><label class="form-label small">Baja P. Después
-                                            (PSI)</label><input type="number" name="circ_A_baja_despues"
-                                            class="form-control" step="0.01" inputmode="decimal"></div>
-                                    <div class="col-6"><label class="form-label small">Alta P. Antes (PSI)</label><input
-                                            type="number" name="circ_A_alta_antes" class="form-control" step="0.01"
-                                            inputmode="decimal"></div>
-                                    <div class="col-6"><label class="form-label small">Alta P. Después
-                                            (PSI)</label><input type="number" name="circ_A_alta_despues"
-                                            class="form-control" step="0.01" inputmode="decimal"></div>
-                                </div>
-                            </div>
-                            <!-- Circuito B (visible si el equipo tiene 2 circuitos) -->
-                            <div id="circ-B" class="mb-3" style="display:none">
-                                <input type="hidden" name="circuito_label" value="B" disabled id="hidden-circ-B">
-                                <p class="fw-bold mb-2">Circuito B</p>
-                                <div class="row g-2">
-                                    <div class="col-6"><label class="form-label small">Baja P. Antes (PSI)</label><input
-                                            type="number" name="circ_B_baja_antes" class="form-control" step="0.01"
-                                            inputmode="decimal"></div>
-                                    <div class="col-6"><label class="form-label small">Baja P. Después
-                                            (PSI)</label><input type="number" name="circ_B_baja_despues"
-                                            class="form-control" step="0.01" inputmode="decimal"></div>
-                                    <div class="col-6"><label class="form-label small">Alta P. Antes (PSI)</label><input
-                                            type="number" name="circ_B_alta_antes" class="form-control" step="0.01"
-                                            inputmode="decimal"></div>
-                                    <div class="col-6"><label class="form-label small">Alta P. Después
-                                            (PSI)</label><input type="number" name="circ_B_alta_despues"
-                                            class="form-control" step="0.01" inputmode="decimal"></div>
-                                </div>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="chk-circ-b"
-                                    onchange="toggleCircB()">
-                                <label class="form-check-label" for="chk-circ-b">Este equipo tiene Circuito B</label>
-                            </div>
+                        <input type="hidden" name="circuito_label" value="A">
+                        <div class="row g-2">
+                            <div class="col-6"><label class="small">Baja Antes</label><input type="number"
+                                    name="circ_A_baja_antes" class="form-control" step="0.01"></div>
+                            <div class="col-6"><label class="small">Baja Desp.</label><input type="number"
+                                    name="circ_A_baja_despues" class="form-control" step="0.01"></div>
                         </div>
                     </div>
-
-                    <!-- Split panel -->
                     <div id="panel-split" class="seccion-medicion p-3" style="display:none">
                         <div class="row g-2">
-                            <div class="col-6"><label class="form-label small">T. Suministro Antes (°C)</label><input
-                                    type="number" name="temp_sumin_antes" class="form-control" step="0.1"
-                                    inputmode="decimal"></div>
-                            <div class="col-6"><label class="form-label small">T. Suministro Después (°C)</label><input
-                                    type="number" name="temp_sumin_despues" class="form-control" step="0.1"
-                                    inputmode="decimal"></div>
-                            <div class="col-6"><label class="form-label small">T. Retorno Antes (°C)</label><input
-                                    type="number" name="temp_retorno_antes" class="form-control" step="0.1"
-                                    inputmode="decimal"></div>
-                            <div class="col-6"><label class="form-label small">T. Retorno Después (°C)</label><input
-                                    type="number" name="temp_retorno_despues" class="form-control" step="0.1"
-                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="small">Sumin. Antes</label><input type="number"
+                                    name="temp_sumin_antes" class="form-control" step="0.1"></div>
+                            <div class="col-6"><label class="small">Sumin. Desp.</label><input type="number"
+                                    name="temp_sumin_despues" class="form-control" step="0.1"></div>
                         </div>
                     </div>
-
-                    <!-- Observaciones -->
-                    <p class="section-title mt-3">Observaciones</p>
-                    <textarea name="observacion" class="form-control" rows="2"
-                        placeholder="Ej: Serpín evaporador presentaba suciedad leve."></textarea>
+                    <textarea name="observacion" class="form-control mt-3" rows="2"
+                        placeholder="Observaciones..."></textarea>
                 </div>
-                <div class="p-3">
-                    <button type="submit" class="btn btn-roa-primary w-100">
-                        <i class="bi bi-plus-circle me-1"></i>Agregar Equipo Intervenido
-                    </button>
-                </div>
+                <div class="p-3"><button type="submit" class="btn btn-roa-primary w-100">Agregar Equipo</button></div>
             </form>
         </div>
 
-        <!-- Lista de equipos intervenidos ya guardados -->
         {% for ei in equipos_intervenidos %}
         <div class="equipo-card-idx p-3 m-3">
             <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo
                     }}</span></div>
-            <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }} · {{ ei.capacidad }} · {{ ei.refrigerante }}
-            </div>
-            <div class="small">
-                <span class="text-muted">L1-L2-L3:</span>
-                {{ ei.corriente_l1|default:"—" }} / {{ ei.corriente_l2|default:"—" }} / {{ ei.corriente_l3|default:"—"
-                }} A
-            </div>
-            {% with obs=ei.observacion %}
-            {% if obs.texto %}<div class="small text-muted mt-1"><i class="bi bi-chat-left-text me-1"></i>{{ obs.texto
-                }}</div>{% endif %}
-            {% endwith %}
-            <!-- Mediciones UCA -->
-            {% for m in ei.mediciones_uca.all %}
-            <div class="mt-1 small"><strong>Circ. {{ m.circuito }}</strong>
-                Baja: {{ m.baja_p_antes|default:"—" }}→{{ m.baja_p_despues|default:"—" }} PSI |
-                Alta: {{ m.alta_p_antes|default:"—" }}→{{ m.alta_p_despues|default:"—" }} PSI
-            </div>
-            {% endfor %}
-            <!-- Medición Split -->
-            {% with ms=ei.medicion_split %}
-            {% if ms %}
-            <div class="mt-1 small"><strong>Temp.</strong>
-                Suminst: {{ ms.temp_sumin_antes|default:"—" }}→{{ ms.temp_sumin_despues|default:"—" }} °C |
-                Retorno: {{ ms.temp_retorno_antes|default:"—" }}→{{ ms.temp_retorno_despues|default:"—" }} °C
-            </div>
-            {% endif %}
-            {% endwith %}
+            <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }}</div>
+            {% if ei.observacion.texto %}<div class="small text-muted mt-1">{{ ei.observacion.texto }}</div>{% endif %}
         </div>
         {% empty %}
-        <div class="text-center text-muted py-3 small">
-            <i class="bi bi-snow2 me-1"></i>Agrega al menos un equipo intervenido
-        </div>
+        <div class="text-center text-muted py-3 small">No hay equipos.</div>
         {% endfor %}
     </div>
 </div>
 
-<!-- ── SECCIÓN 3: Finalizar ──────────────────────────── -->
+<!-- Finalizar -->
 <div class="card mb-4">
     <div class="card-body">
-        <a href="{% url 'operations:pdf_orden' orden.pk %}" class="btn btn-outline-primary w-100 mb-2" target="_blank">
-            <i class="bi bi-file-earmark-pdf me-1"></i>Vista previa PDF
-        </a>
+        <a href="{% url 'operations:pdf_orden' orden.pk %}" class="btn btn-outline-primary w-100 mb-2"
+            target="_blank">PDF</a>
         {% if equipos_intervenidos %}
-        <form method="post" action="{% url 'operations:finalizar_orden' orden.pk %}"
-            onsubmit="return confirm('¿Finalizar la orden? Esta acción no se puede deshacer.')">
+        <form method="post" action="{% url 'operations:finalizar_orden' orden.pk %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-roa-primary w-100 py-3">
-                <i class="bi bi-check-circle-fill me-2"></i>Finalizar Orden ({{ orden.radicado }})
-            </button>
+            <button type="submit" class="btn btn-roa-primary w-100 py-3">Finalizar ({{ orden.radicado }})</button>
         </form>
-        {% else %}
-        <p class="text-muted text-center small mb-0">Agrega al menos un equipo para poder finalizar</p>
         {% endif %}
     </div>
 </div>
@@ -379,67 +227,22 @@
     let equiposData = [];
     try {
         const dataNode = document.getElementById('equipos-data');
-        if (dataNode) {
-            equiposData = JSON.parse(dataNode.textContent);
-        }
-    } catch (e) {
-        console.error("Error al leer equipos_db:", e);
-    }
+        if (dataNode) equiposData = JSON.parse(dataNode.textContent);
+    } catch (e) { console.error(e); }
 
     function autocompletarEquipo(eqId) {
         if (!eqId) return;
         const eq = equiposData.find(e => e.id == eqId);
         if (!eq) return;
-
         const form = document.getElementById('form-agregar-equipo');
-
-        // Llenar campos
-        if (form.elements['nombre_equipo']) form.elements['nombre_equipo'].value = eq.nombre_equipo || '';
-        if (form.elements['ubicacion']) form.elements['ubicacion'].value = eq.ubicacion || '';
-
-        // Autoseleccionar drop-down de tipo equipo y ajustar los tabs de medición
-        if (form.elements['tipo_equipo']) {
-            form.elements['tipo_equipo'].value = eq.tipo_equipo || '';
-            updateTipoEq();
-        }
-
-        if (form.elements['marca']) form.elements['marca'].value = eq.marca || '';
-        if (form.elements['modelo']) form.elements['modelo'].value = eq.modelo || '';
-        if (form.elements['capacidad']) form.elements['capacidad'].value = eq.capacidad || '';
-        if (form.elements['refrigerante']) form.elements['refrigerante'].value = eq.refrigerante || '';
-        if (form.elements['voltaje']) form.elements['voltaje'].value = eq.voltaje || '';
-        if (form.elements['activo_fijo']) form.elements['activo_fijo'].value = eq.activo_fijo || '';
-
-        // Feedback visual
-        const inputs = Array.from(form.querySelectorAll('input[type="text"], select'));
-        inputs.forEach(el => {
-            if (el.value && el.id !== 'sel-autocompletar-equipo') {
-                el.style.transition = "background-color 0.3s";
-                el.style.backgroundColor = "#e8f5e9"; // Verde tenue
-                setTimeout(() => el.style.backgroundColor = "", 1500);
-            }
-        });
+        const setVal = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el) el.value = val || ''; };
+        setVal('nombre_equipo', eq.nombre_equipo);
+        updateTipoEq();
     }
-
     function setMedicion(tipo) {
         document.getElementById('panel-uca').style.display = tipo === 'uca' ? '' : 'none';
         document.getElementById('panel-split').style.display = tipo === 'split' ? '' : 'none';
-        document.getElementById('tab-uca').className = 'tab-tipo ' + (tipo === 'uca' ? 'active-uca' : '');
-        document.getElementById('tab-split').className = 'tab-tipo ' + (tipo === 'split' ? 'active-split' : '');
-        document.querySelector('input[name="tipo_medicion"][value="' + tipo + '"]').checked = true;
     }
-    function toggleCircB() {
-        const show = document.getElementById('chk-circ-b').checked;
-        document.getElementById('circ-B').style.display = show ? '' : 'none';
-        document.getElementById('hidden-circ-B').disabled = !show;
-    }
-    function updateTipoEq() {
-        const tipo = document.getElementById('sel-tipo-eq').value;
-        if (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'CASSETTE' || tipo === 'PISO_TECHO') {
-            setMedicion('split');
-        } else {
-            setMedicion('uca');
-        }
-    }
+    function updateTipoEq() { }
 </script>
 {% endblock %}

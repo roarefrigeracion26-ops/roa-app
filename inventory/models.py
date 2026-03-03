@@ -55,6 +55,8 @@ class EquipoAA(models.Model):
         max_length=20, blank=True, help_text='R410A, R22, R32, R407C, etc.'
     )
     voltaje = models.CharField(max_length=50, blank=True, help_text='Ej: 220 V')
+    fases = models.CharField(max_length=50, blank=True, help_text='Ej: 3 PH 60HZ')
+    tipo_correa = models.CharField(max_length=50, blank=True, help_text='Ej: BX38')
     activo_fijo = models.CharField(max_length=50, blank=True, help_text='Número de activo fijo')
     activo = models.BooleanField(default=True)
 

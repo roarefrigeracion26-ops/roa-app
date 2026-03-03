@@ -91,12 +91,12 @@ Nueva Orden —
                 <div class="col-12">
                     <label class="form-label">Cliente <span class="text-danger">*</span></label>
                     <input type="text" name="cliente_nombre" class="form-control" required
-                        value="{{ form.cliente_nombre.value|default:equipo.cliente.nombre }}">
+                        value="{% if es_mp_tienda %}{{ form.cliente_nombre.value|default:cliente.nombre }}{% else %}{{ form.cliente_nombre.value|default:equipo.cliente.nombre }}{% endif %}">
                 </div>
                 <div class="col-6">
                     <label class="form-label">Dir. Cliente</label>
                     <input type="text" name="dir_cliente" class="form-control"
-                        value="{{ form.dir_cliente.value|default:equipo.cliente.dir_cliente }}">
+                        value="{% if es_mp_tienda %}{{ form.dir_cliente.value|default:cliente.dir_cliente }}{% else %}{{ form.dir_cliente.value|default:equipo.cliente.dir_cliente }}{% endif %}">
                 </div>
                 <div class="col-6">
                     <label class="form-label">No. Orden de Servicio</label>

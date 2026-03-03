@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Orden Finalizada — {{ orden.radicado }}{% endblock %}
+
 {% block content %}
 <div class="text-center py-4">
     <div class="mb-3" style="font-size:4rem;">✅</div>
@@ -17,17 +18,30 @@
     <div class="card mx-auto mt-3 text-start" style="max-width:400px;">
         <div class="card-body">
             <div class="row g-2 small">
-                <div class="col-6"><span class="text-muted">Técnico:</span><br><strong>{{
-                        orden.tecnico.nombre_completo|default:orden.tecnico.username }}</strong></div>
-                <div class="col-6"><span class="text-muted">Fecha:</span><br><strong>{{ orden.fecha }}</strong></div>
-                <div class="col-6"><span class="text-muted">Equipo:</span><br><strong>{{ orden.equipo.nombre }}</strong>
+                <div class="col-6">
+                    <span class="text-muted">Técnico:</span><br>
+                    <strong>{{ orden.tecnico.nombre_completo|default:orden.tecnico.username }}</strong>
                 </div>
-                <div class="col-6"><span class="text-muted">Cliente:</span><br><strong>{{ orden.cliente_nombre
-                        }}</strong></div>
-                <div class="col-6"><span class="text-muted">Duración:</span><br><strong>{{ minutos|default:"—" }}
-                        min</strong></div>
-                <div class="col-6"><span class="text-muted">Tipo:</span><br><strong>{{ orden.get_tipo_display
-                        }}</strong></div>
+                <div class="col-6">
+                    <span class="text-muted">Fecha:</span><br>
+                    <strong>{{ orden.fecha }}</strong>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted">Equipo:</span><br>
+                    <strong>{% if orden.equipo %}{{ orden.equipo.nombre }}{% else %}Global{% endif %}</strong>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted">Cliente:</span><br>
+                    <strong>{{ orden.cliente_nombre }}</strong>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted">Duración:</span><br>
+                    <strong>{{ minutos|default:"—" }} min</strong>
+                </div>
+                <div class="col-6">
+                    <span class="text-muted">Tipo:</span><br>
+                    <strong>{{ orden.get_tipo_display }}</strong>
+                </div>
             </div>
         </div>
     </div>

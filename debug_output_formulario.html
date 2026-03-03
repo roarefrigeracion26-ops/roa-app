@@ -1,0 +1,625 @@
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orden RAD-2024-0005 — Sistema de Gestión de Mantenimiento de AA</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --roa-blue: #1565C0;
+      --roa-blue-light: #E3F2FD;
+      --roa-blue-mid: #1976D2;
+      --roa-gold: #B8860B;
+      --roa-gold-light: #FFF8E1;
+      --roa-bg: #F5F9FF;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--roa-bg);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Navbar */
+    .roa-navbar {
+      background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+      box-shadow: 0 2px 8px rgba(21, 101, 192, 0.3);
+    }
+
+    .roa-brand-text {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    .roa-brand-sub {
+      font-size: 0.68rem;
+      color: var(--roa-gold);
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .roa-badge-supervisor {
+      background: var(--roa-gold);
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    /* Cards */
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(21, 101, 192, 0.08);
+    }
+
+    .card-header-roa {
+      background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+      color: #fff;
+      border-radius: 12px 12px 0 0 !important;
+      padding: 0.85rem 1.25rem;
+    }
+
+    .card-header-gold {
+      background: linear-gradient(135deg, var(--roa-gold) 0%, #DAA520 100%);
+      color: #fff;
+      border-radius: 12px 12px 0 0 !important;
+      padding: 0.85rem 1.25rem;
+    }
+
+    /* Buttons */
+    .btn-roa-primary {
+      background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: all 0.2s;
+    }
+
+    .btn-roa-primary:hover {
+      background: linear-gradient(135deg, #0D47A1 0%, var(--roa-blue) 100%);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+    }
+
+    .btn-roa-gold {
+      background: linear-gradient(135deg, var(--roa-gold) 0%, #DAA520 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .btn-roa-gold:hover {
+      background: linear-gradient(135deg, #8B6914 0%, var(--roa-gold) 100%);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3);
+    }
+
+    .btn-tipo-mant {
+      min-height: 5rem;
+      font-size: 1.05rem;
+      border-radius: 12px;
+      border-width: 2px;
+      transition: all 0.2s;
+    }
+
+    .btn-tipo-mant:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Equipos list */
+    .equipo-card {
+      border-left: 4px solid var(--roa-blue);
+      transition: all 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .equipo-card:hover {
+      border-left-color: var(--roa-gold);
+      transform: translateX(3px);
+      box-shadow: 0 4px 16px rgba(21, 101, 192, 0.15);
+      color: inherit;
+    }
+
+    /* Section headings */
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--roa-blue);
+      border-bottom: 2px solid var(--roa-blue-light);
+      padding-bottom: 0.4rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Alert warning */
+    .alert-preventivo {
+      background: #FFF3E0;
+      border: 1px solid var(--roa-gold);
+      border-left: 4px solid var(--roa-gold);
+      border-radius: 8px;
+    }
+
+    /* Form labels */
+    label {
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: var(--roa-blue);
+      box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.15);
+    }
+
+    /* Radicado badge */
+    .radicado-badge {
+      background: var(--roa-gold);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+
+    .radicado-prefix {
+      display: inline-block;
+      background: var(--roa-blue);
+      color: #fff;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 6px 0 0 6px;
+      font-size: 1rem;
+    }
+  </style>
+  
+<style>
+    .equipo-card-idx {
+        background: var(--roa-blue-light);
+        border-left: 4px solid var(--roa-blue);
+        border-radius: 8px;
+    }
+
+    .seccion-medicion {
+        background: #f8f9ff;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .tab-tipo {
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        padding: 8px 18px;
+        border: 1px solid #dee2e6;
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .tab-tipo.active-uca {
+        background: var(--roa-blue);
+        color: #fff;
+    }
+
+    .tab-tipo.active-split {
+        background: var(--roa-gold);
+        color: #fff;
+    }
+</style>
+
+</head>
+
+<body>
+  
+  <nav class="navbar navbar-expand-lg roa-navbar px-3 py-2">
+    <div class="container-fluid">
+      <!-- Brand -->
+      <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none"
+        href="/clientes/">
+        <div>
+          <div class="roa-brand-text">ROA APP</div>
+          <div class="roa-brand-sub">SGMAA</div>
+        </div>
+      </a>
+      <!-- User name centered -->
+      <span class="text-white position-absolute start-50 translate-middle-x d-none d-md-block"
+        style="font-size:0.9rem;">
+        Tecnico de Prueba
+        
+      </span>
+      <!-- Nav buttons -->
+      <div class="ms-auto d-flex align-items-center gap-2">
+        
+        <a class="btn btn-outline-light btn-sm" href="/clientes/">
+          <i class="bi bi-house-door"></i> Inicio
+        </a>
+        
+        <form action="/logout/" method="post" style="display:inline;">
+          <input type="hidden" name="csrfmiddlewaretoken" value="oarCw73KeqyTPkjU1z4lgHmhVPT43DRqa0kIxA1g4vSu2F0kvt3pUbF9UMSWcmW7">
+          <button type="submit" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Salir
+          </button>
+        </form>
+      </div>
+    </div>
+  </nav>
+  
+
+  <main class="container py-4">
+    
+    
+<!-- Header -->
+<div class="d-flex align-items-start justify-content-between mb-3">
+    <div>
+        <h1 class="h4 fw-bold text-primary mb-0">Formulario de Intervención</h1>
+        <div class="d-flex align-items-center gap-2 mt-1">
+            <span class="radicado-badge">RAD-2024-0005</span>
+            <span class="badge bg-primary">
+                Preventivo MP
+            </span>
+        </div>
+    </div>
+    
+        <a href="/clientes/" class="btn btn-sm btn-outline-secondary">
+            
+            <i class="bi bi-house-door"></i>
+        </a>
+</div>
+
+<!-- Info del encabezado -->
+<div class="card mb-3">
+    <div class="card-body py-2 px-3">
+        <div class="row g-2 small">
+            <div class="col-6"><span class="text-muted">Cliente:</span> <strong>TIENDA TEST</strong>
+            </div>
+            <div class="col-6"><span class="text-muted">Fecha:</span> <strong>2024-05-20</strong></div>
+            <div class="col-6"><span class="text-muted">Dir:</span> Calle 123</div>
+            <div class="col-6"><span class="text-muted">Orden:</span> 123456</div>
+            <div class="col-6"><span class="text-muted">Equipo:</span> </div>
+            <div class="col-6"><span class="text-muted">Mes:</span> Mayo</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── SECCIÓN 1: Actividades ─────────────────────────── -->
+<div class="card mb-3">
+    <div class="card-header-roa"><i class="bi bi-list-check me-1"></i>Actividades Realizadas</div>
+    <div class="card-body">
+        <form method="post" action="/orden/5/actividades/">
+            <input type="hidden" name="csrfmiddlewaretoken" value="oarCw73KeqyTPkjU1z4lgHmhVPT43DRqa0kIxA1g4vSu2F0kvt3pUbF9UMSWcmW7">
+            
+            
+            
+            <button type="submit" class="btn btn-outline-primary btn-sm mt-3">
+                <i class="bi bi-save me-1"></i>Guardar actividades
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ── SECCIÓN 2: Equipos Intervenidos ───────────────── -->
+<div class="card mb-3">
+    <div class="card-header-gold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-snow2 me-1"></i>Equipos Intervenidos</span>
+        <button class="btn btn-sm btn-light fw-bold" data-bs-toggle="collapse" data-bs-target="#formAgregar">
+            <i class="bi bi-plus-circle me-1"></i>Agregar
+        </button>
+    </div>
+    <div class="card-body p-0">
+
+        <!-- Formulario agregar equipo (colapsable) -->
+        <div class="collapse" id="formAgregar">
+            <form method="post" action="/orden/5/equipo/agregar/" id="form-agregar-equipo">
+                <input type="hidden" name="csrfmiddlewaretoken" value="oarCw73KeqyTPkjU1z4lgHmhVPT43DRqa0kIxA1g4vSu2F0kvt3pUbF9UMSWcmW7">
+                <div class="p-3 border-bottom">
+                    
+
+                    <p class="section-title">Datos Ténicos del Equipo</p>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Nombre del equipo *</label>
+                            <input type="text" name="nombre_equipo" class="form-control" placeholder="Ej: UCA 1"
+                                required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" name="ubicacion" class="form-control" placeholder="Ej: AZOTEA">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Tipo equipo</label>
+                            <select name="tipo_equipo" class="form-select" id="sel-tipo-eq" onchange="updateTipoEq()">
+                                <option value="">— Seleccionar —</option>
+                                <option value="UCA">UCA</option>
+                                <option value="UMA">UMA</option>
+                                <option value="SPLIT">Split</option>
+                                <option value="CASSETTE">Cassette</option>
+                                <option value="PISO_TECHO">Piso Techo</option>
+                                <option value="OTRO">Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Refrigerante</label>
+                            <select name="refrigerante" class="form-select">
+                                <option value="">—</option>
+                                <option>R410A</option>
+                                <option>R22</option>
+                                <option>R32</option>
+                                <option>R407C</option>
+                                <option>R134A</option>
+                                <option>R404A</option>
+                                <option>Otro</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Marca</label>
+                            <input type="text" name="marca" class="form-control" placeholder="Ej: CONFORTFRESH">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Modelo</label>
+                            <input type="text" name="modelo" class="form-control" placeholder="Ej: CPV13300X2">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Capacidad</label>
+                            <input type="text" name="capacidad" class="form-control" placeholder="25TR">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Voltaje</label>
+                            <input type="text" name="voltaje" class="form-control" placeholder="220 V">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Fases/Frec.</label>
+                            <input type="text" name="fases" class="form-control" placeholder="3 PH 60HZ">
+                        </div>
+                    </div>
+                    <!-- Corriente / Amperaje -->
+                    <p class="section-title mt-3">Corriente L1/L2/L3 (A)</p>
+                    <div class="row g-2">
+                        <div class="col-4"><input type="number" name="corriente_l1" class="form-control"
+                                placeholder="L1" step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="corriente_l2" class="form-control"
+                                placeholder="L2" step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="corriente_l3" class="form-control"
+                                placeholder="L3" step="0.01" inputmode="decimal"></div>
+                    </div>
+                    <p class="section-title mt-3">Amperaje L1/L2/L3 (A)</p>
+                    <div class="row g-2">
+                        <div class="col-4"><input type="number" name="amperaje_l1" class="form-control" placeholder="L1"
+                                step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="amperaje_l2" class="form-control" placeholder="L2"
+                                step="0.01" inputmode="decimal"></div>
+                        <div class="col-4"><input type="number" name="amperaje_l3" class="form-control" placeholder="L3"
+                                step="0.01" inputmode="decimal"></div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-6">
+                            <label class="form-label">Tipo de Correa</label>
+                            <input type="text" name="tipo_correa" class="form-control" placeholder="Ej: BX38">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Activo Fijo</label>
+                            <input type="text" name="activo_fijo" class="form-control" placeholder="1433977">
+                        </div>
+                    </div>
+
+                    <!-- Mediciones -->
+                    <p class="section-title mt-3">Mediciones</p>
+                    <div class="d-flex gap-2 mb-2">
+                        <label class="tab-tipo active-uca" id="tab-uca" onclick="setMedicion('uca')">
+                            <input type="radio" name="tipo_medicion" value="uca" checked class="d-none"> 🧊 UCA
+                            (Presiones)
+                        </label>
+                        <label class="tab-tipo" id="tab-split" onclick="setMedicion('split')">
+                            <input type="radio" name="tipo_medicion" value="split" class="d-none"> 🌡️ UMA / Split
+                            (Temp.)
+                        </label>
+                    </div>
+
+                    <!-- UCA panels -->
+                    <div id="panel-uca" class="seccion-medicion p-3">
+                        <div id="circuitos-container">
+                            <!-- Circuito A siempre -->
+                            <div class="mb-3">
+                                <input type="hidden" name="circuito_label" value="A">
+                                <p class="fw-bold mb-2">Circuito A</p>
+                                <div class="row g-2">
+                                    <div class="col-6"><label class="form-label small">Baja P. Antes (PSI)</label><input
+                                            type="number" name="circ_A_baja_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Baja P. Después
+                                            (PSI)</label><input type="number" name="circ_A_baja_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Antes (PSI)</label><input
+                                            type="number" name="circ_A_alta_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Después
+                                            (PSI)</label><input type="number" name="circ_A_alta_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                </div>
+                            </div>
+                            <!-- Circuito B (visible si el equipo tiene 2 circuitos) -->
+                            <div id="circ-B" class="mb-3" style="display:none">
+                                <input type="hidden" name="circuito_label" value="B" disabled id="hidden-circ-B">
+                                <p class="fw-bold mb-2">Circuito B</p>
+                                <div class="row g-2">
+                                    <div class="col-6"><label class="form-label small">Baja P. Antes (PSI)</label><input
+                                            type="number" name="circ_B_baja_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Baja P. Después
+                                            (PSI)</label><input type="number" name="circ_B_baja_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Antes (PSI)</label><input
+                                            type="number" name="circ_B_alta_antes" class="form-control" step="0.01"
+                                            inputmode="decimal"></div>
+                                    <div class="col-6"><label class="form-label small">Alta P. Después
+                                            (PSI)</label><input type="number" name="circ_B_alta_despues"
+                                            class="form-control" step="0.01" inputmode="decimal"></div>
+                                </div>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="chk-circ-b"
+                                    onchange="toggleCircB()">
+                                <label class="form-check-label" for="chk-circ-b">Este equipo tiene Circuito B</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Split panel -->
+                    <div id="panel-split" class="seccion-medicion p-3" style="display:none">
+                        <div class="row g-2">
+                            <div class="col-6"><label class="form-label small">T. Suministro Antes (°C)</label><input
+                                    type="number" name="temp_sumin_antes" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="form-label small">T. Suministro Después (°C)</label><input
+                                    type="number" name="temp_sumin_despues" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="form-label small">T. Retorno Antes (°C)</label><input
+                                    type="number" name="temp_retorno_antes" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                            <div class="col-6"><label class="form-label small">T. Retorno Después (°C)</label><input
+                                    type="number" name="temp_retorno_despues" class="form-control" step="0.1"
+                                    inputmode="decimal"></div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <p class="section-title mt-3">Observaciones</p>
+                    <textarea name="observacion" class="form-control" rows="2"
+                        placeholder="Ej: Serpín evaporador presentaba suciedad leve."></textarea>
+                </div>
+                <div class="p-3">
+                    <button type="submit" class="btn btn-roa-primary w-100">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar Equipo Intervenido
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Lista de equipos intervenidos ya guardados -->
+        
+        <div class="text-center text-muted py-3 small">
+            <i class="bi bi-snow2 me-1"></i>Agrega al menos un equipo intervenido
+        </div>
+        
+    </div>
+</div>
+
+<!-- ── SECCIÓN 3: Finalizar ──────────────────────────── -->
+<div class="card mb-4">
+    <div class="card-body">
+        <a href="/orden/5/pdf/" class="btn btn-outline-primary w-100 mb-2" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Vista previa PDF
+        </a>
+        
+        <p class="text-muted text-center small mb-0">Agrega al menos un equipo para poder finalizar</p>
+        
+    </div>
+</div>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+<script id="equipos-data" type="application/json">[]</script>
+<script>
+    let equiposData = [];
+    try {
+        const dataNode = document.getElementById('equipos-data');
+        if (dataNode) {
+            equiposData = JSON.parse(dataNode.textContent);
+        }
+    } catch (e) {
+        console.error("Error al leer equipos_db:", e);
+    }
+
+    function autocompletarEquipo(eqId) {
+        if (!eqId) return;
+        const eq = equiposData.find(e => e.id == eqId);
+        if (!eq) return;
+
+        const form = document.getElementById('form-agregar-equipo');
+        if (!form) return;
+
+        // Función auxiliar para llenar campos por nombre
+        const setVal = (name, val) => {
+            const el = form.querySelector(`[name="${name}"]`);
+            if (el) el.value = val || '';
+        };
+
+        // Llenar campos individuales
+        setVal('nombre_equipo', eq.nombre_equipo);
+        setVal('ubicacion', eq.ubicacion);
+        setVal('tipo_equipo', eq.tipo_equipo);
+        setVal('marca', eq.marca);
+        setVal('modelo', eq.modelo);
+        setVal('capacidad', eq.capacidad);
+        setVal('refrigerante', eq.refrigerante);
+        setVal('voltaje', eq.voltaje);
+        setVal('fases', eq.fases);
+        setVal('tipo_correa', eq.tipo_correa);
+        setVal('activo_fijo', eq.activo_fijo);
+
+        // Disparar lógica de tipo de equipo (mostrar UCA o Split)
+        updateTipoEq();
+
+        // Feedback visual
+        const inputs = Array.from(form.querySelectorAll('input, select, textarea'));
+        inputs.forEach(el => {
+            if (el.value && el.id !== 'sel-autocompletar-equipo' && el.type !== 'hidden') {
+                el.style.transition = "background-color 0.4s";
+                el.style.backgroundColor = "#d4edda"; // Verde éxito
+                setTimeout(() => el.style.backgroundColor = "", 1200);
+            }
+        });
+    }
+
+    function setMedicion(tipo) {
+        document.getElementById('panel-uca').style.display = tipo === 'uca' ? '' : 'none';
+        document.getElementById('panel-split').style.display = tipo === 'split' ? '' : 'none';
+        document.getElementById('tab-uca').className = 'tab-tipo ' + (tipo === 'uca' ? 'active-uca' : '');
+        document.getElementById('tab-split').className = 'tab-tipo ' + (tipo === 'split' ? 'active-split' : '');
+        document.querySelector('input[name="tipo_medicion"][value="' + tipo + '"]').checked = true;
+    }
+    function toggleCircB() {
+        const show = document.getElementById('chk-circ-b').checked;
+        document.getElementById('circ-B').style.display = show ? '' : 'none';
+        document.getElementById('hidden-circ-B').disabled = !show;
+    }
+    function updateTipoEq() {
+        const tipo = document.getElementById('sel-tipo-eq').value;
+        if (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'CASSETTE' || tipo === 'PISO_TECHO') {
+            setMedicion('split');
+        } else {
+            setMedicion('uca');
+        }
+    }
+</script>
+
+</body>
+
+</html>

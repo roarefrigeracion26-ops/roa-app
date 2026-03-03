@@ -87,9 +87,19 @@ class NuevaOrdenClienteView(LoginRequiredMixin, View):
                 'cliente_bloqueo': cliente, # Usamos cliente en vez de equipo para el contexto
             })
             
+        # Sugerir el último radicado + 1
+        ultima_orden = OrdenServicio.objects.filter(tipo='MP').order_by('-radicado').first()
+        sug_numero = ""
+        if ultima_orden:
+            import re
+            m = re.search(r'\d+', ultima_orden.radicado)
+            if m:
+                sug_numero = str(int(m.group()) + 1)
+
         form = NuevaOrdenClienteForm(initial={
             'cliente_nombre': cliente.nombre,
             'dir_cliente': cliente.dir_cliente,
+            'radicado_numero': sug_numero,
             'fecha': timezone.localdate(),
             'mes': timezone.localdate().strftime('%m/%Y').lstrip('0') if hasattr(timezone.localdate(), 'strftime') else '',
         })
@@ -139,9 +149,19 @@ class NuevaOrdenView(LoginRequiredMixin, View):
     """Formulario para elegir tipo, ingresar radicado y datos del encabezado (Histórico por Equipo)."""
     def get(self, request, equipo_id):
         equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
+        # Sugerir el último radicado + 1 para MC
+        ultima_orden = OrdenServicio.objects.filter(tipo='MC').order_by('-radicado').first()
+        sug_numero = ""
+        if ultima_orden:
+            import re
+            m = re.search(r'\d+', ultima_orden.radicado)
+            if m:
+                sug_numero = str(int(m.group()) + 1)
+
         form = NuevaOrdenForm(initial={
             'cliente_nombre': equipo.cliente.nombre,
             'dir_cliente': equipo.cliente.dir_cliente,
+            'radicado_numero': sug_numero,
             'fecha': timezone.localdate(),
             'mes': timezone.localdate().strftime('%m/%Y').lstrip('0') if hasattr(timezone.localdate(), 'strftime') else '',
             'tipo': 'MC' # Sugerimos MC por defecto al entrar por equipo
@@ -202,7 +222,7 @@ class FormularioOrdenView(LoginRequiredMixin, View):
         if cliente:
             from inventory.models import EquipoAA
             equipos_db = EquipoAA.objects.filter(cliente=cliente, activo=True)
-            equipos_json = json.dumps([{
+            equipos_json = [{
                 'id': eq.id,
                 'nombre_equipo': eq.nombre,
                 'ubicacion': eq.ubicacion,
@@ -212,11 +232,13 @@ class FormularioOrdenView(LoginRequiredMixin, View):
                 'capacidad': eq.capacidad,
                 'refrigerante': eq.refrigerante,
                 'voltaje': eq.voltaje,
+                'fases': eq.fases,
+                'tipo_correa': eq.tipo_correa,
                 'activo_fijo': eq.activo_fijo,
-            } for eq in equipos_db])
+            } for eq in equipos_db]
         else:
             equipos_db = []
-            equipos_json = "[]"
+            equipos_json = []
 
         return {
             'orden': orden,
@@ -231,7 +253,9 @@ class FormularioOrdenView(LoginRequiredMixin, View):
         }
 
     def get(self, request, orden_id):
-        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
+        if orden.estado == EstadoOrden.CERRADO:
+            return redirect('operations:orden_cerrada', orden_id=orden.pk)
         return render(request, 'operations/formulario_orden.html', self._get_context(orden))
 
 
@@ -310,8 +334,9 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
     """POST: cierra la orden, genera y guarda el PDF."""
 
     def post(self, request, orden_id):
-        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
-        orden.marcar_cerrado()
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
+        if orden.estado == EstadoOrden.ABIERTO:
+            orden.marcar_cerrado()
         return redirect('operations:orden_cerrada', orden_id=orden.pk)
 
 
