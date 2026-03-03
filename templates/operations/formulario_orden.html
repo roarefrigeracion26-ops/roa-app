@@ -115,7 +115,23 @@
             <form method="post" action="{% url 'operations:agregar_equipo' orden.pk %}" id="form-agregar-equipo">
                 {% csrf_token %}
                 <div class="p-3 border-bottom">
-                    <p class="section-title">Datos del Equipo</p>
+                    {% if equipos_db %}
+                    <div class="mb-3 p-3 bg-light rounded border border-primary border-opacity-25">
+                        <label class="form-label text-primary fw-bold"><i class="bi bi-magic me-1"></i>Autocompletar
+                            Equipo de la Tienda</label>
+                        <select class="form-select border-primary" id="sel-autocompletar-equipo"
+                            onchange="autocompletarEquipo(this.value)">
+                            <option value="">— Llenar manualmente o seleccionar de la base de datos —</option>
+                            {% for eq in equipos_db %}
+                            <option value="{{ eq.id }}">{{ eq.nombre }} ({{ eq.tipo_equipo }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small"><i class="bi bi-info-circle me-1"></i>Al elegir un equipo, sus
+                            datos (Marca, Modelo, Voltaje, etc) se completarán.</div>
+                    </div>
+                    {% endif %}
+
+                    <p class="section-title">Datos Ténicos del Equipo</p>
                     <div class="row g-2">
                         <div class="col-6">
                             <label class="form-label">Nombre del equipo *</label>
@@ -358,7 +374,53 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ equipos_json|json_script:"equipos-data" }}
 <script>
+    let equiposData = [];
+    try {
+        const dataNode = document.getElementById('equipos-data');
+        if (dataNode) {
+            equiposData = JSON.parse(dataNode.textContent);
+        }
+    } catch (e) {
+        console.error("Error al leer equipos_db:", e);
+    }
+
+    function autocompletarEquipo(eqId) {
+        if (!eqId) return;
+        const eq = equiposData.find(e => e.id == eqId);
+        if (!eq) return;
+
+        const form = document.getElementById('form-agregar-equipo');
+
+        // Llenar campos
+        if (form.elements['nombre_equipo']) form.elements['nombre_equipo'].value = eq.nombre_equipo || '';
+        if (form.elements['ubicacion']) form.elements['ubicacion'].value = eq.ubicacion || '';
+
+        // Autoseleccionar drop-down de tipo equipo y ajustar los tabs de medición
+        if (form.elements['tipo_equipo']) {
+            form.elements['tipo_equipo'].value = eq.tipo_equipo || '';
+            updateTipoEq();
+        }
+
+        if (form.elements['marca']) form.elements['marca'].value = eq.marca || '';
+        if (form.elements['modelo']) form.elements['modelo'].value = eq.modelo || '';
+        if (form.elements['capacidad']) form.elements['capacidad'].value = eq.capacidad || '';
+        if (form.elements['refrigerante']) form.elements['refrigerante'].value = eq.refrigerante || '';
+        if (form.elements['voltaje']) form.elements['voltaje'].value = eq.voltaje || '';
+        if (form.elements['activo_fijo']) form.elements['activo_fijo'].value = eq.activo_fijo || '';
+
+        // Feedback visual
+        const inputs = Array.from(form.querySelectorAll('input[type="text"], select'));
+        inputs.forEach(el => {
+            if (el.value && el.id !== 'sel-autocompletar-equipo') {
+                el.style.transition = "background-color 0.3s";
+                el.style.backgroundColor = "#e8f5e9"; // Verde tenue
+                setTimeout(() => el.style.backgroundColor = "", 1500);
+            }
+        });
+    }
+
     function setMedicion(tipo) {
         document.getElementById('panel-uca').style.display = tipo === 'uca' ? '' : 'none';
         document.getElementById('panel-split').style.display = tipo === 'split' ? '' : 'none';

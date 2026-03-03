@@ -196,6 +196,28 @@ class FormularioOrdenView(LoginRequiredMixin, View):
             'mediciones_uca', 'medicion_split', 'observacion'
         ).all()
         actividades = orden.actividades.all()
+        
+        # Equipos de la tienda para autocompletar
+        cliente = orden.cliente or (orden.equipo.cliente if orden.equipo else None)
+        if cliente:
+            from inventory.models import EquipoAA
+            equipos_db = EquipoAA.objects.filter(cliente=cliente, activo=True)
+            equipos_json = json.dumps([{
+                'id': eq.id,
+                'nombre_equipo': eq.nombre,
+                'ubicacion': eq.ubicacion,
+                'tipo_equipo': eq.tipo_equipo,
+                'marca': eq.marca,
+                'modelo': eq.modelo,
+                'capacidad': eq.capacidad,
+                'refrigerante': eq.refrigerante,
+                'voltaje': eq.voltaje,
+                'activo_fijo': eq.activo_fijo,
+            } for eq in equipos_db])
+        else:
+            equipos_db = []
+            equipos_json = "[]"
+
         return {
             'orden': orden,
             'equipo': orden.equipo, # Puede ser nulo
@@ -204,6 +226,8 @@ class FormularioOrdenView(LoginRequiredMixin, View):
             'actividades': actividades,
             'equipo_form': EquipoIntervenidoForm(),
             'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
+            'equipos_db': equipos_db,
+            'equipos_json': equipos_json,
         }
 
     def get(self, request, orden_id):
