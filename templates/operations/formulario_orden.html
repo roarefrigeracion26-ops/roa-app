@@ -67,8 +67,7 @@
             <div class="col-6"><span class="text-muted">Fecha:</span> <strong>{{ orden.fecha }}</strong></div>
             <div class="col-6"><span class="text-muted">Dir:</span> {{ orden.dir_cliente|default:"—" }}</div>
             <div class="col-6"><span class="text-muted">Orden:</span> {{ orden.num_orden|default:"—" }}</div>
-            <div class="col-6"><span class="text-muted">Equipo:</span> {% if equipo %}{{ equipo.nombre }}{% else
-                %}<em>Global (Múltiples)</em>{% endif %}</div>
+            <div class="col-6"><span class="text-muted">Equipo:</span> {% if equipo %}{{ equipo.nombre }}{% else %}<em>Global (Múltiples)</em>{% endif %}</div>
             <div class="col-6"><span class="text-muted">Mes:</span> {{ orden.mes|default:"—" }}</div>
         </div>
     </div>
@@ -195,8 +194,7 @@
 
         {% for ei in equipos_intervenidos %}
         <div class="equipo-card-idx p-3 m-3">
-            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo
-                    }}</span></div>
+            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo }}</span></div>
             <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }}</div>
             {% if ei.observacion.texto %}<div class="small text-muted mt-1">{{ ei.observacion.texto }}</div>{% endif %}
         </div>

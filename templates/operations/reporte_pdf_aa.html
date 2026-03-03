@@ -37,10 +37,6 @@
             font-size: 8.5pt;
         }
 
-        .no-border td {
-            border: none;
-        }
-
         h2 {
             font-size: 11pt;
             color: #1565C0;
@@ -105,14 +101,6 @@
             margin-top: 8px;
             border-top: 1px solid #ccc;
             padding-top: 4px;
-        }
-
-        .equipo-block {
-            border: 1px solid #1565C0;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            padding: 5px;
-            page-break-inside: avoid;
         }
     </style>
 </head>
@@ -188,36 +176,23 @@
     <div class="section-bar" style="margin-top:5px;">ACTIVIDADES REALIZADAS</div>
     {% if es_preventivo %}
     <table style="margin-top:3px;">
-        {% with acts=actividades|list %}
-        {% for i in "0123456789" %}
-        {% with idx=forloop.counter0 %}
-        {% endwith %}
-        {% endfor %}
-        <!-- Render activities in 2-column layout -->
         <tr>
-            {% for act in actividades %}
-            {% if forloop.counter <= 5 %} <td style="width:4%;text-align:center;" class="checkmark">{% if act.marcada
-                %}☑{% else %}☐{% endif %}</td>
-                <td style="width:46%;">{{ act.texto }}</td>
-                {% endif %}
-                {% endfor %}
-        </tr>
-        <tr>
-            {% for act in actividades %}
-            {% if forloop.counter > 5 %}
+            {% for act in actividades|slice:":5" %}
             <td style="width:4%;text-align:center;" class="checkmark">{% if act.marcada %}☑{% else %}☐{% endif %}</td>
             <td style="width:46%;">{{ act.texto }}</td>
-            {% endif %}
             {% endfor %}
         </tr>
-        {% endwith %}
+        <tr>
+            {% for act in actividades|slice:"5:10" %}
+            <td style="width:4%;text-align:center;" class="checkmark">{% if act.marcada %}☑{% else %}☐{% endif %}</td>
+            <td style="width:46%;">{{ act.texto }}</td>
+            {% endfor %}
+        </tr>
     </table>
     {% else %}
     <table style="margin-top:3px;">
         <tr>
-            <td>
-                {% for act in actividades %}{{ act.texto }}{% endfor %}
-            </td>
+            <td>{% for act in actividades %}{{ act.texto }}{% endfor %}</td>
         </tr>
     </table>
     {% endif %}
@@ -271,7 +246,6 @@
         </tr>
     </table>
 
-    <!-- Mediciones UCA -->
     {% if ei.mediciones_uca.exists %}
     <table style="margin-top:4px;">
         <tr>
@@ -296,9 +270,7 @@
     </table>
     {% endif %}
 
-    <!-- Mediciones Split/UMA -->
-    {% with ms=ei.medicion_split %}
-    {% if ms %}
+    {% if ei.medicion_split %}
     <table style="margin-top:4px;">
         <tr>
             <th>Parámetro</th>
@@ -307,30 +279,25 @@
         </tr>
         <tr>
             <td>Temperatura de Suministro</td>
-            <td class="center">{{ ms.temp_sumin_antes|default:"—" }}</td>
-            <td class="center">{{ ms.temp_sumin_despues|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_sumin_antes|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_sumin_despues|default:"—" }}</td>
         </tr>
         <tr>
             <td>Temperatura de Retorno</td>
-            <td class="center">{{ ms.temp_retorno_antes|default:"—" }}</td>
-            <td class="center">{{ ms.temp_retorno_despues|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_retorno_antes|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_retorno_despues|default:"—" }}</td>
         </tr>
     </table>
     {% endif %}
-    {% endwith %}
 
-    <!-- Observaciones -->
-    {% with obs=ei.observacion %}
     <table style="margin-top:3px;">
         <tr>
             <td class="label-cell" style="width:20%;">Observaciones</td>
-            <td>{% if obs %}{{ obs.texto|default:"—" }}{% else %}—{% endif %}</td>
+            <td>{% if ei.observacion %}{{ ei.observacion.texto|default:"—" }}{% else %}—{% endif %}</td>
         </tr>
     </table>
-    {% endwith %}
     {% endfor %}
 
-    <!-- ══════════════ PIE DE PÁGINA ══════════════ -->
     <div class="footnote">
         Elaborado por <strong>Roa Refrigeración Ingeniería S.A.S.</strong> — www.roarefrigeracion.com |
         Código: FT-GM-41 | Hora inicio: {{ orden.hora_inicio|date:"d/m/Y H:i" }}
