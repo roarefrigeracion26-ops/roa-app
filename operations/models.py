@@ -4,7 +4,7 @@ from inventory.models import EquipoAA
 
 
 class TipoMantenimiento(models.TextChoices):
-    PREVENTIVO = 'MP', 'Mantenimiento Preventivo Tipo A'
+    PREVENTIVO = 'MP', 'Mantenimiento Preventivo MP'
     CORRECTIVO = 'MC', 'Mantenimiento Correctivo'
 
 
@@ -20,7 +20,14 @@ class OrdenServicio(models.Model):
     Los correctivos (MC) pueden coexistir.
     """
     equipo = models.ForeignKey(
-        EquipoAA, on_delete=models.PROTECT, related_name='ordenes'
+        EquipoAA, on_delete=models.PROTECT, related_name='ordenes',
+        null=True, blank=True,
+        help_text='Obligatorio para MC. Nulo para MP global por Tienda.'
+    )
+    cliente = models.ForeignKey(
+        'inventory.Cliente', on_delete=models.PROTECT, related_name='ordenes_servicio',
+        null=True, blank=True,
+        help_text='Obligatorio para MP global. Nulo para MC por equipo.'
     )
     tecnico = models.ForeignKey(
         settings.AUTH_USER_MODEL,

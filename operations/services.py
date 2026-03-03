@@ -22,22 +22,28 @@ def obtener_preventivo_abierto(tecnico):
         tecnico=tecnico,
         tipo=TipoMantenimiento.PREVENTIVO,
         estado=EstadoOrden.ABIERTO,
-    ).select_related('equipo', 'equipo__cliente').first()
+    ).select_related('cliente', 'equipo', 'equipo__cliente').first()
 
 
-def iniciar_orden(tecnico, equipo, tipo, radicado, cliente_nombre, dir_cliente,
-                  num_orden, fecha, mes):
+def iniciar_orden(tecnico, tipo, radicado, cliente_nombre, dir_cliente,
+                  num_orden, fecha, mes, equipo=None, cliente=None):
     """
     Crea una OrdenServicio.
+    - Si es tipo MP, se asocia directamente a 'cliente' (la Tienda). 'equipo' puede ser None.
+    - Si es tipo MC, se requiere obligatoriamente 'equipo'.
     Lanza ValueError solo si tipo==MP y ya hay un preventivo abierto.
-    Correctivos NUNCA bloquean.
     """
     if tipo == TipoMantenimiento.PREVENTIVO and tecnico_tiene_preventivo_abierto(tecnico):
         raise ValueError(
-            'Tienes un Preventivo Tipo A abierto. Debes finalizarlo antes de iniciar otro mantenimiento preventivo.'
+            'Tienes un Preventivo MP abierto. Debes finalizarlo antes de iniciar otro mantenimiento preventivo.'
         )
+        
+    if tipo == TipoMantenimiento.CORRECTIVO and not equipo:
+        raise ValueError('Un Mantenimiento Correctivo requiere indicar un equipo específico.')
+        
     orden = OrdenServicio.objects.create(
         equipo=equipo,
+        cliente=cliente,
         tecnico=tecnico,
         tipo=tipo,
         radicado=radicado,

@@ -4,6 +4,7 @@ from . import views
 app_name = 'operations'
 urlpatterns = [
     path('equipo/<int:equipo_id>/', views.FichaEquipoView.as_view(), name='ficha_equipo'),
+    path('cliente/<int:cliente_id>/orden/nueva/', views.NuevaOrdenClienteView.as_view(), name='nueva_orden_cliente'),
     path('orden/nueva/<int:equipo_id>/', views.NuevaOrdenView.as_view(), name='nueva_orden'),
     path('orden/<int:orden_id>/formulario/', views.FormularioOrdenView.as_view(), name='formulario_orden'),
     path('orden/<int:orden_id>/equipo/agregar/', views.AgregarEquipoView.as_view(), name='agregar_equipo'),

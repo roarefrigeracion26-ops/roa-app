@@ -89,6 +89,13 @@ class NuevaOrdenForm(forms.Form):
         numero = self.cleaned_data.get('radicado_numero', '')
         return f'{tipo}{numero}'
 
+class NuevaOrdenClienteForm(NuevaOrdenForm):
+    """Formulario para la tienda. Fuerza el tipo MP y esconde la selección de MC."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tipo'].initial = 'MP'
+        self.fields['tipo'].widget = forms.HiddenInput()
+
 
 class EquipoIntervenidoForm(forms.ModelForm):
     """Datos completos de cada equipo intervenido en la orden."""

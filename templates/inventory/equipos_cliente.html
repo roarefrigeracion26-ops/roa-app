@@ -15,14 +15,22 @@
 {% if preventivo_abierto %}
 <div class="alert alert-preventivo mb-3">
     <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
-    <strong>Preventivo abierto:</strong> {{ preventivo_abierto.radicado }} — {{ preventivo_abierto.equipo.nombre }}
+    <strong>Preventivo MP abierto:</strong> {{ preventivo_abierto.radicado }}
+    {% if preventivo_abierto.equipo %} — {{ preventivo_abierto.equipo.nombre }}{% endif %}
     <a href="{% url 'operations:formulario_orden' preventivo_abierto.pk %}" class="btn btn-sm btn-roa-gold ms-2">
         Continuar
     </a>
 </div>
+{% else %}
+<div class="mb-4">
+    <a href="{% url 'operations:nueva_orden_cliente' cliente.pk %}" class="btn btn-roa-primary w-100 py-2 fw-bold"
+        style="font-size:1.1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <i class="bi bi-clipboard-check-fill me-2 fs-4 align-middle"></i> Iniciar Preventivo MP de Tienda
+    </a>
+</div>
 {% endif %}
 
-<p class="section-title"><i class="bi bi-wind me-1"></i>Equipos de Aire Acondicionado</p>
+<p class="section-title"><i class="bi bi-wind me-1"></i>Equipos para Mantenimiento Correctivo (MC)</p>
 
 {% for equipo in equipos %}
 <a href="{% url 'operations:ficha_equipo' equipo.pk %}" class="equipo-card card mb-2 p-3">

@@ -70,27 +70,85 @@ class FichaEquipoView(LoginRequiredMixin, View):
 
 
 # ─────────────────────────────────────────────────────────
-# NuevaOrdenView: GET form (tipo + radicado + encabezado)
+# NuevaOrdenClienteView: Creación de Preventivo (MP) por Tienda
 # ─────────────────────────────────────────────────────────
-class NuevaOrdenView(LoginRequiredMixin, View):
-    """Formulario para elegir tipo, ingresar radicado y datos del encabezado."""
-    def get(self, request, equipo_id):
-        equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
-        # Bloquear si hay preventivo abierto
+from inventory.models import Cliente
+from .forms import NuevaOrdenClienteForm
+
+class NuevaOrdenClienteView(LoginRequiredMixin, View):
+    """Formulario para iniciar un Preventivo (MP) a nivel de toda la Tienda/Cliente."""
+    def get(self, request, cliente_id):
+        cliente = get_object_or_404(Cliente, pk=cliente_id, activo=True)
+        # Bloquear si ya hay preventivo abierto (el técnico no puede tener 2 al tiempo)
         preventivo_abierto = obtener_preventivo_abierto(request.user)
         if preventivo_abierto:
             return render(request, 'operations/bloqueo_preventivo.html', {
                 'preventivo_abierto': preventivo_abierto,
-                'equipo': equipo,
+                'cliente_bloqueo': cliente, # Usamos cliente en vez de equipo para el contexto
             })
+            
+        form = NuevaOrdenClienteForm(initial={
+            'cliente_nombre': cliente.nombre,
+            'dir_cliente': cliente.dir_cliente,
+            'fecha': timezone.localdate(),
+            'mes': timezone.localdate().strftime('%m/%Y').lstrip('0') if hasattr(timezone.localdate(), 'strftime') else '',
+        })
+        return render(request, 'operations/nueva_orden.html', {
+            'cliente': cliente,
+            'es_mp_tienda': True,
+            'form': form,
+        })
+
+    def post(self, request, cliente_id):
+        cliente = get_object_or_404(Cliente, pk=cliente_id, activo=True)
+        form = NuevaOrdenClienteForm(request.POST)
+        if form.is_valid():
+            try:
+                tipo = form.cleaned_data['tipo']
+                radicado = form.get_radicado()
+                orden = iniciar_orden(
+                    tecnico=request.user,
+                    tipo=tipo,
+                    radicado=radicado,
+                    cliente_nombre=form.cleaned_data['cliente_nombre'],
+                    dir_cliente=form.cleaned_data.get('dir_cliente', ''),
+                    num_orden=form.cleaned_data.get('num_orden', ''),
+                    fecha=form.cleaned_data['fecha'],
+                    mes=form.cleaned_data.get('mes', ''),
+                    cliente=cliente,
+                    equipo=None # Un MP de tienda no se amarra a un equipo en concreto
+                )
+                return redirect('operations:formulario_orden', orden_id=orden.pk)
+            except ValueError as e:
+                return render(request, 'operations/bloqueo_preventivo.html', {
+                    'preventivo_abierto': obtener_preventivo_abierto(request.user),
+                    'cliente_bloqueo': cliente,
+                    'error': str(e),
+                })
+        return render(request, 'operations/nueva_orden.html', {
+            'cliente': cliente,
+            'es_mp_tienda': True,
+            'form': form,
+        })
+
+
+# ─────────────────────────────────────────────────────────
+# NuevaOrdenView: GET form para Correctivos (MC)
+# ─────────────────────────────────────────────────────────
+class NuevaOrdenView(LoginRequiredMixin, View):
+    """Formulario para elegir tipo, ingresar radicado y datos del encabezado (Histórico por Equipo)."""
+    def get(self, request, equipo_id):
+        equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
         form = NuevaOrdenForm(initial={
             'cliente_nombre': equipo.cliente.nombre,
             'dir_cliente': equipo.cliente.dir_cliente,
             'fecha': timezone.localdate(),
             'mes': timezone.localdate().strftime('%m/%Y').lstrip('0') if hasattr(timezone.localdate(), 'strftime') else '',
+            'tipo': 'MC' # Sugerimos MC por defecto al entrar por equipo
         })
         return render(request, 'operations/nueva_orden.html', {
             'equipo': equipo,
+            'es_mp_tienda': False,
             'form': form,
         })
 
@@ -103,7 +161,6 @@ class NuevaOrdenView(LoginRequiredMixin, View):
                 radicado = form.get_radicado()
                 orden = iniciar_orden(
                     tecnico=request.user,
-                    equipo=equipo,
                     tipo=tipo,
                     radicado=radicado,
                     cliente_nombre=form.cleaned_data['cliente_nombre'],
@@ -111,6 +168,8 @@ class NuevaOrdenView(LoginRequiredMixin, View):
                     num_orden=form.cleaned_data.get('num_orden', ''),
                     fecha=form.cleaned_data['fecha'],
                     mes=form.cleaned_data.get('mes', ''),
+                    equipo=equipo,
+                    cliente=equipo.cliente
                 )
                 return redirect('operations:formulario_orden', orden_id=orden.pk)
             except ValueError as e:
@@ -121,6 +180,7 @@ class NuevaOrdenView(LoginRequiredMixin, View):
                 })
         return render(request, 'operations/nueva_orden.html', {
             'equipo': equipo,
+            'es_mp_tienda': False,
             'form': form,
         })
 
@@ -138,7 +198,8 @@ class FormularioOrdenView(LoginRequiredMixin, View):
         actividades = orden.actividades.all()
         return {
             'orden': orden,
-            'equipo': orden.equipo,
+            'equipo': orden.equipo, # Puede ser nulo
+            'cliente': orden.cliente, # Para mostrar la tienda global
             'equipos_intervenidos': equipos_intervenidos,
             'actividades': actividades,
             'equipo_form': EquipoIntervenidoForm(),

@@ -72,21 +72,21 @@
 <!-- Botones de tipo -->
 <p class="section-title">¿Qué tipo de mantenimiento vas a realizar?</p>
 <div class="row g-3">
-    <div class="col-6">
-        <a href="{% url 'operations:nueva_orden' equipo.pk %}?tipo=MP"
-            class="btn btn-roa-primary btn-tipo-mant w-100 d-flex flex-column align-items-center justify-content-center">
-            <i class="bi bi-clipboard-check-fill fs-3 mb-1"></i>
-            <span>Preventivo</span>
-            <small class="fw-normal opacity-75">MP</small>
+    <div class="col-12">
+        <a href="{% url 'operations:nueva_orden' equipo.pk %}"
+            class="btn btn-roa-gold btn-tipo-mant w-100 d-flex flex-column align-items-center justify-content-center p-4">
+            <i class="bi bi-tools fs-1 mb-2"></i>
+            <span class="fs-4">Correctivo Único (MC)</span>
+            <small class="fw-normal opacity-75 mt-1">Específico para este equipo</small>
         </a>
     </div>
-    <div class="col-6">
-        <a href="{% url 'operations:nueva_orden' equipo.pk %}?tipo=MC"
-            class="btn btn-roa-gold btn-tipo-mant w-100 d-flex flex-column align-items-center justify-content-center">
-            <i class="bi bi-tools fs-3 mb-1"></i>
-            <span>Correctivo</span>
-            <small class="fw-normal opacity-75">MC</small>
-        </a>
+    <div class="col-12 text-center mt-3">
+        <div class="text-muted small">
+            <i class="bi bi-info-circle me-1"></i>
+            Para iniciar un Mantenimiento Preventivo (MP), hágalo desde <a
+                href="{% url 'inventory:equipos_cliente' equipo.cliente.pk %}"
+                class="text-primary text-decoration-none fw-bold">la vista general de la tienda</a>.
+        </div>
     </div>
 </div>
 {% endif %}
