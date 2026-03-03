@@ -87,7 +87,7 @@ class NuevaOrdenView(LoginRequiredMixin, View):
             'cliente_nombre': equipo.cliente.nombre,
             'dir_cliente': equipo.cliente.dir_cliente,
             'fecha': timezone.localdate(),
-            'mes': timezone.localdate().strftime('%-m/%Y') if hasattr(timezone.localdate(), 'strftime') else '',
+            'mes': timezone.localdate().strftime('%m/%Y').lstrip('0') if hasattr(timezone.localdate(), 'strftime') else '',
         })
         return render(request, 'operations/nueva_orden.html', {
             'equipo': equipo,
