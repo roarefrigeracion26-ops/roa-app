@@ -3,12 +3,17 @@
 
 {% block extra_css %}
 <style>
-  :root { --olimpica-red: #c30110; }
-  body { background-color: var(--olimpica-red) !important; }
+    :root {
+        --roa-blue: #175aa5;
+    }
+
+    body {
+        background-color: var(--roa-blue) !important;
+    }
 </style>
 {% endblock %}
 
-{% block title %}Ingreso | SGMR Olímpica{% endblock %}
+{% block title %}Ingreso | ROA{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
@@ -18,9 +23,10 @@
 
             <div class="card-body p-5">
                 <div class="text-center mb-4">
-                    <img src="{% static 'image/logo_olimpica.jpg' %}" alt="Logo Olímpica" class="img-fluid" style="max-height: 80px;" onerror="this.style.display='none'">
-                    <h4 class="mt-3 fw-bold text-secondary">Monitoreo y Reparación de Activos</h4>
-                    <p class="text-muted small">Dirección de Ingeniería y Mantenimiento</p>
+                    <img src="{% static 'image/roa-logo.png' %}" alt="Logo ROA" class="img-fluid"
+                        style="max-height: 80px;" onerror="this.style.display='none'">
+                    <h4 class="mt-3 fw-bold text-secondary">Seguimiento Actividades</h4>
+                    <p class="text-muted small">ROA REFRIGERACIÓN</p>
                 </div>
 
                 <form method="post" action="{% url 'users:login' %}">
@@ -33,13 +39,15 @@
                     <div class="mb-3">
                         <label for="id_username" class="form-label small fw-bold">Usuario</label>
                         {{ form.username }}
-                        {% if form.username.errors %}<div class="invalid-feedback d-block small">{{ form.username.errors.0 }}</div>{% endif %}
+                        {% if form.username.errors %}<div class="invalid-feedback d-block small">{{
+                            form.username.errors.0 }}</div>{% endif %}
                     </div>
 
                     <div class="mb-4">
                         <label for="id_password" class="form-label small fw-bold">Contraseña</label>
                         {{ form.password }}
-                        {% if form.password.errors %}<div class="invalid-feedback d-block small">{{ form.password.errors.0 }}</div>{% endif %}
+                        {% if form.password.errors %}<div class="invalid-feedback d-block small">{{
+                            form.password.errors.0 }}</div>{% endif %}
                     </div>
 
                     <div class="d-grid">
@@ -52,7 +60,7 @@
         </div>
 
         <p class="text-center mt-4 small" style="color: rgba(255,255,255,0.9);">
-            &copy; 2026 Olímpica S.A. - Todos los derechos reservados.
+            &copy; 2026 ROA REFRIGERACIÓN - Todos los derechos reservados.
         </p>
     </div>
 </div>
