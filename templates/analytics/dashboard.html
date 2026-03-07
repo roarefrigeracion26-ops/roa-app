@@ -48,7 +48,7 @@
 
 <!-- KPI Cards -->
 <div class="row g-3 mb-4">
-  <div class="col-md-4 col-6">
+  <div class="col-md-6 col-6">
     <div class="card kpi-card shadow-sm h-100">
       <div class="card-body d-flex align-items-center">
         <div class="flex-shrink-0 me-3">
@@ -61,7 +61,7 @@
       </div>
     </div>
   </div>
-  <div class="col-md-4 col-6">
+  <div class="col-md-6 col-6">
     <div class="card kpi-card shadow-sm h-100" style="border-left-color: var(--roa-gold);">
       <div class="card-body d-flex align-items-center">
         <div class="flex-shrink-0 me-3">
@@ -72,19 +72,6 @@
             {% if mttr_minutos %}{{ mttr_minutos }} min{% else %}—{% endif %}
           </div>
           <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">MTTR Correctivos</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-4 d-none d-md-block">
-    <div class="card kpi-card shadow-sm h-100 border-left-success" style="border-left-color: #198754;">
-      <div class="card-body d-flex align-items-center">
-        <div class="flex-shrink-0 me-3">
-          <i class="bi bi-check-circle text-success kpi-icon"></i>
-        </div>
-        <div>
-          <div class="h3 fw-bold mb-0 text-success">100%</div>
-          <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Disponibilidad</div>
         </div>
       </div>
     </div>
@@ -103,7 +90,7 @@
         <select name="cliente" class="form-select form-select-sm" onchange="this.form.submit()">
           <option value="">Todos los clientes</option>
           {% for c in clientes %}
-          <option value="{{ c.pk }}" {% if cliente_seleccionado == c.pk|stringformat:"s" %}selected{% endif %}>
+          <option value="{{ c.pk }}" {% if cliente_seleccionado == c.pk %}selected{% endif %}>
             {{ c.nombre }}
           </option>
           {% endfor %}
@@ -114,7 +101,7 @@
         <select name="equipo" class="form-select form-select-sm" onchange="this.form.submit()">
           <option value="">Todos los equipos</option>
           {% for e in equipos %}
-          <option value="{{ e.pk }}" {% if equipo_seleccionado == e.pk|stringformat:"s" %}selected{% endif %}>
+          <option value="{{ e.pk }}" {% if equipo_seleccionado == e.pk %}selected{% endif %}>
             {{ e.nombre }}
           </option>
           {% endfor %}

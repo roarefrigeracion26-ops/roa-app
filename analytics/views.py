@@ -95,8 +95,16 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
         context['equipos'] = list(equipos_qs.order_by('nombre'))
         context['tipos'] = TipoMantenimiento.choices
 
-        context['cliente_seleccionado'] = cliente_id
-        context['equipo_seleccionado'] = equipo_id
+        try:
+            context['cliente_seleccionado'] = int(cliente_id)
+        except ValueError:
+            context['cliente_seleccionado'] = cliente_id
+
+        try:
+            context['equipo_seleccionado'] = int(equipo_id)
+        except ValueError:
+            context['equipo_seleccionado'] = equipo_id
+
         context['tipo_seleccionado'] = tipo
         context['fecha_inicio_seleccionada'] = fecha_inicio_str
         context['fecha_fin_seleccionada'] = fecha_fin_str

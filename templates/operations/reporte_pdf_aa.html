@@ -110,10 +110,9 @@
     <!-- ══════════════ ENCABEZADO ══════════════ -->
     <table class="header-table" style="margin-bottom:6px;">
         <tr>
-            <td style="width:22%;text-align:center;padding:6px;">
-                <div style="font-size:16pt;font-weight:900;color:#1565C0;letter-spacing:2px;">ROA</div>
-                <div style="font-size:6pt;color:#B8860B;font-weight:bold;letter-spacing:1px;">REFRIGERACIÓN INGENIERÍA
-                    S.A.S.</div>
+            <td style="width:22%;text-align:center;padding:10px;">
+                <img src="{% static 'image/roa-logo.jpeg' %}" alt="Logo ROA"
+                    style="max-height: 45px; max-width: 90px; object-fit: contain;">
             </td>
             <td style="text-align:center;padding:4px;">
                 <div style="font-size:11pt;font-weight:bold;color:#1565C0;">ROA REFRIGERACIÓN INGENIERÍA S.A.S.</div>
@@ -124,7 +123,7 @@
                 <table style="margin:0;font-size:7.5pt;">
                     <tr>
                         <td class="label-cell">Código</td>
-                        <td>FT-GM-41</td>
+                        <td>FT-GM-01</td>
                     </tr>
                     <tr>
                         <td class="label-cell">Versión</td>
@@ -192,7 +191,13 @@
     {% else %}
     <table style="margin-top:3px;">
         <tr>
-            <td>{% for act in actividades %}{{ act.texto }}{% endfor %}</td>
+            <td style="padding:5px;">
+                {% for act in actividades %}
+                {{ act.texto|linebreaksbr }}
+                {% empty %}
+                <em>No se registraron actividades específicas.</em>
+                {% endfor %}
+            </td>
         </tr>
     </table>
     {% endif %}
@@ -230,8 +235,7 @@
             <td class="label-cell">Corriente L1/L2/L3 (A)</td>
             <td>{{ ei.corriente_l1|default:"—" }} / {{ ei.corriente_l2|default:"—" }} / {{ ei.corriente_l3|default:"—" }}</td>
             <td class="label-cell">Amperaje L1/L2/L3 (A)</td>
-            <td>{{ ei.amperaje_l1|default:"—" }} / {{ ei.amperaje_l2|default:"—" }} / {{ ei.amperaje_l3|default:"—" }}
-            </td>
+            <td>{{ ei.amperaje_l1|default:"—" }} / {{ ei.amperaje_l2|default:"—" }} / {{ ei.amperaje_l3|default:"—" }}</td>
         </tr>
         <tr>
             <td class="label-cell">Fases / Frecuencia</td>
@@ -299,7 +303,7 @@
 
     <div class="footnote">
         Elaborado por <strong>Roa Refrigeración Ingeniería S.A.S.</strong> — www.roarefrigeracion.com |
-        Código: FT-GM-41 | Hora inicio: {{ orden.hora_inicio|date:"d/m/Y H:i" }}
+        Código: FT-GM-01 | Hora inicio: {{ orden.hora_inicio|date:"d/m/Y H:i" }}
         {% if orden.hora_fin %} | Hora fin: {{ orden.hora_fin|date:"H:i" }}{% endif %}
     </div>
 

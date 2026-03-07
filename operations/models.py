@@ -15,7 +15,7 @@ class EstadoOrden(models.TextChoices):
 
 class OrdenServicio(models.Model):
     """
-    Documento de intervención (equivale a FT-GM-41).
+    Documento de intervención (equivale a FT-GM-01).
     Solo los Preventivos (MP) bloquean nuevas órdenes.
     Los correctivos (MC) pueden coexistir.
     """
