@@ -1,4 +1,4 @@
-# SGMR — Sistema de Gestión de Mantenimiento de Racks
+# SGMAA — Sistema de Gestión de Mantenimiento de A/A
 
 Aplicación web **móvil-first** para técnicos de refrigeración: registro en tiempo real de mantenimientos, trazabilidad y cálculo de MTTR.
 
@@ -11,7 +11,7 @@ Aplicación web **móvil-first** para técnicos de refrigeración: registro en t
 ## Instalación
 
 ```bash
-cd sgmr
+cd sgmaa
 python -m venv .venv
 .venv\Scripts\activate   # Windows
 # source .venv/bin/activate   # Linux/macOS
