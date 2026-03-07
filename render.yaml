@@ -2,6 +2,7 @@ services:
   - type: web
     name: roa-app
     env: python
+    pythonVersion: "3.11.0"
     buildCommand: "./build.sh"
     startCommand: "gunicorn config.wsgi:application"
     envVars:
@@ -10,7 +11,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: DATABASE_URL
-        sync: false   # Lo cargás manualmente desde Supabase
+        sync: false
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
       - key: RENDER_EXTERNAL_HOSTNAME
