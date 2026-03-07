@@ -151,9 +151,7 @@
         </tr>
         <tr>
             <td class="label-cell">Dir. Cliente</td>
-            <td>{{ orden.dir_cliente|default:"—" }}</td>
-            <td class="label-cell">No. Orden de Servicio</td>
-            <td>{{ orden.num_orden|default:"—" }}</td>
+            <td colspan="3">{{ orden.dir_cliente|default:"—" }}</td>
         </tr>
         <tr>
             <td class="label-cell">Fecha</td>
@@ -235,7 +233,8 @@
             <td class="label-cell">Corriente L1/L2/L3 (A)</td>
             <td>{{ ei.corriente_l1|default:"—" }} / {{ ei.corriente_l2|default:"—" }} / {{ ei.corriente_l3|default:"—" }}</td>
             <td class="label-cell">Amperaje L1/L2/L3 (A)</td>
-            <td>{{ ei.amperaje_l1|default:"—" }} / {{ ei.amperaje_l2|default:"—" }} / {{ ei.amperaje_l3|default:"—" }}</td>
+            <td>{{ ei.amperaje_l1|default:"—" }} / {{ ei.amperaje_l2|default:"—" }} / {{ ei.amperaje_l3|default:"—" }}
+            </td>
         </tr>
         <tr>
             <td class="label-cell">Fases / Frecuencia</td>

@@ -69,10 +69,6 @@ class NuevaOrdenForm(forms.Form):
         max_length=300, label='Dir. Cliente', required=False,
         widget=_text_input('Ej: 1059'),
     )
-    num_orden = forms.CharField(
-        max_length=50, label='No. Orden de Servicio', required=False,
-        widget=_text_input('Ej: 2025-001'),
-    )
     fecha = forms.DateField(
         label='Fecha',
         widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

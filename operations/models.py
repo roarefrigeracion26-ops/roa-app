@@ -46,7 +46,6 @@ class OrdenServicio(models.Model):
     # Datos del encabezado / orden de servicio
     cliente_nombre = models.CharField(max_length=200, verbose_name='Cliente')
     dir_cliente = models.CharField(max_length=300, blank=True, verbose_name='Dir. Cliente')
-    num_orden = models.CharField(max_length=50, blank=True, verbose_name='No. Orden de Servicio')
     fecha = models.DateField(verbose_name='Fecha')
     mes = models.CharField(max_length=20, blank=True, verbose_name='Mes')
 

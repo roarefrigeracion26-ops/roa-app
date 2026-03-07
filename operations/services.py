@@ -26,7 +26,7 @@ def obtener_preventivo_abierto(tecnico):
 
 
 def iniciar_orden(tecnico, tipo, radicado, cliente_nombre, dir_cliente,
-                  num_orden, fecha, mes, equipo=None, cliente=None):
+                  fecha, mes, equipo=None, cliente=None):
     """
     Crea una OrdenServicio.
     - Si es tipo MP, se asocia directamente a 'cliente' (la Tienda). 'equipo' puede ser None.
@@ -49,7 +49,6 @@ def iniciar_orden(tecnico, tipo, radicado, cliente_nombre, dir_cliente,
         radicado=radicado,
         cliente_nombre=cliente_nombre,
         dir_cliente=dir_cliente,
-        num_orden=num_orden,
         fecha=fecha,
         mes=mes,
         hora_inicio=timezone.now(),

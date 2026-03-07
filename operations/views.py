@@ -128,7 +128,6 @@ class NuevaOrdenClienteView(LoginRequiredMixin, View):
                     radicado=radicado,
                     cliente_nombre=form.cleaned_data['cliente_nombre'],
                     dir_cliente=form.cleaned_data.get('dir_cliente', ''),
-                    num_orden=form.cleaned_data.get('num_orden', ''),
                     fecha=form.cleaned_data['fecha'],
                     mes=form.cleaned_data.get('mes', ''),
                     cliente=cliente,
@@ -191,7 +190,6 @@ class NuevaOrdenView(LoginRequiredMixin, View):
                     radicado=radicado,
                     cliente_nombre=form.cleaned_data['cliente_nombre'],
                     dir_cliente=form.cleaned_data.get('dir_cliente', ''),
-                    num_orden=form.cleaned_data.get('num_orden', ''),
                     fecha=form.cleaned_data['fecha'],
                     mes=form.cleaned_data.get('mes', ''),
                     equipo=equipo,
@@ -265,14 +263,33 @@ class FormularioOrdenView(LoginRequiredMixin, View):
         return render(request, 'operations/formulario_orden.html', self._get_context(orden))
 
 
+
+def _guardar_actividades_orden(request, orden):
+    """Extrae las actividades del POST (checkboxes o texto) y las guarda en la orden."""
+    if orden.tipo == TipoMantenimiento.PREVENTIVO:
+        marcadas = set(request.POST.getlist('actividad_marcada'))
+        for act in orden.actividades.all():
+            act.marcada = str(act.pk) in marcadas
+            act.save(update_fields=['marcada'])
+    else:
+        texto = request.POST.get('actividades_texto', '')
+        orden.actividades.all().delete()
+        if texto.strip():
+            from operations.models import Actividad
+            Actividad.objects.create(orden=orden, texto=texto, marcada=True)
+
 # ─────────────────────────────────────────────────────────
 # AgregarEquipoView: agrega un EquipoIntervenido y sus mediciones
 # ─────────────────────────────────────────────────────────
 class AgregarEquipoView(LoginRequiredMixin, View):
-    """POST: agrega un equipo intervenido con sus mediciones a la orden."""
+    """POST: agrega un equipo intervenido con sus mediciones y guarda actividades pendientes."""
 
     def post(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+        
+        # Guardado automático de actividades
+        _guardar_actividades_orden(request, orden)
+        
         equipo_form = EquipoIntervenidoForm(request.POST)
 
         if equipo_form.is_valid():
@@ -310,30 +327,6 @@ class AgregarEquipoView(LoginRequiredMixin, View):
 
 
 # ─────────────────────────────────────────────────────────
-# ActualizarActividadesView: guarda el checklist de actividades
-# ─────────────────────────────────────────────────────────
-class ActualizarActividadesView(LoginRequiredMixin, View):
-    """POST: actualiza el checklist (preventivo) o texto libre (correctivo)."""
-
-    def post(self, request, orden_id):
-        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
-
-        if orden.tipo == TipoMantenimiento.PREVENTIVO:
-            marcadas = set(request.POST.getlist('actividad_marcada'))
-            for act in orden.actividades.all():
-                act.marcada = str(act.pk) in marcadas
-                act.save(update_fields=['marcada'])
-        else:
-            texto = request.POST.get('actividades_texto', '')
-            # Para correctivos guardamos el texto como una única actividad
-            orden.actividades.all().delete()
-            if texto.strip():
-                Actividad.objects.create(orden=orden, texto=texto, marcada=True)
-
-        return redirect('operations:formulario_orden', orden_id=orden.pk)
-
-
-# ─────────────────────────────────────────────────────────
 # FinalizarOrdenView: cierra la orden y genera PDF
 # ─────────────────────────────────────────────────────────
 class FinalizarOrdenView(LoginRequiredMixin, View):
@@ -342,6 +335,7 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
     def post(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
         if orden.estado == EstadoOrden.ABIERTO:
+            _guardar_actividades_orden(request, orden)
             orden.marcar_cerrado()
         return redirect('operations:orden_cerrada', orden_id=orden.pk)
 

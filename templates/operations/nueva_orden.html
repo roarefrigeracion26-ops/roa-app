@@ -90,28 +90,19 @@ Nueva Orden —
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label">Cliente <span class="text-danger">*</span></label>
-                    <input type="text" name="cliente_nombre" class="form-control" required
-                        value="{% if es_mp_tienda %}{{ form.cliente_nombre.value|default:cliente.nombre }}{% else %}{{ form.cliente_nombre.value|default:equipo.cliente.nombre }}{% endif %}">
+                    {{ form.cliente_nombre }}
                 </div>
                 <div class="col-6">
                     <label class="form-label">Dir. Cliente</label>
-                    <input type="text" name="dir_cliente" class="form-control"
-                        value="{% if es_mp_tienda %}{{ form.dir_cliente.value|default:cliente.dir_cliente }}{% else %}{{ form.dir_cliente.value|default:equipo.cliente.dir_cliente }}{% endif %}">
-                </div>
-                <div class="col-6">
-                    <label class="form-label">No. Orden de Servicio</label>
-                    <input type="text" name="num_orden" class="form-control"
-                        value="{{ form.num_orden.value|default:'' }}">
+                    {{ form.dir_cliente }}
                 </div>
                 <div class="col-6">
                     <label class="form-label">Fecha <span class="text-danger">*</span></label>
-                    <input type="date" name="fecha" class="form-control" required
-                        value="{{ form.fecha.value|default:'' }}">
+                    {{ form.fecha }}
                 </div>
                 <div class="col-6">
                     <label class="form-label">Mes</label>
-                    <input type="text" name="mes" class="form-control" placeholder="8/2025"
-                        value="{{ form.mes.value|default:'' }}">
+                    {{ form.mes }}
                 </div>
             </div>
         </div>

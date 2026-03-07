@@ -1,10 +1,38 @@
-.venv/
+# Entorno virtual
 venv/
+env/
 .env
-*.pyc
+
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Django
+*.log
 db.sqlite3
 staticfiles/
-*.log
-.idea/
+media/
+
+# Editor
 .vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Scripts de debug temporales
+fix_*.py
+debug_*.py
+test_*.py
+check_*.py
+run_test*.py
+debug_log*.txt

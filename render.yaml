@@ -1,11 +1,21 @@
-# Render - Web Service (SGMR)
-# Conectar repo GitHub y definir DATABASE_URL + SECRET_KEY en Environment
 services:
   - type: web
-    name: sgmr
+    name: roa-app
     env: python
     buildCommand: "./build.sh"
     startCommand: "gunicorn config.wsgi:application"
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        sync: false   # Lo cargás manualmente desde Supabase
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: RENDER_EXTERNAL_HOSTNAME
+        fromService:
+          type: web
+          name: roa-app
+          property: host
+    autoDeploy: true

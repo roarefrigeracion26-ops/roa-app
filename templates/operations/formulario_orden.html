@@ -67,7 +67,8 @@
             <div class="col-6"><span class="text-muted">Fecha:</span> <strong>{{ orden.fecha }}</strong></div>
             <div class="col-6"><span class="text-muted">Dir:</span> {{ orden.dir_cliente|default:"—" }}</div>
             <div class="col-6"><span class="text-muted">Orden:</span> {{ orden.num_orden|default:"—" }}</div>
-            <div class="col-6"><span class="text-muted">Equipo:</span> {% if equipo %}{{ equipo.nombre }}{% else %}<em>Global (Múltiples)</em>{% endif %}</div>
+            <div class="col-6"><span class="text-muted">Equipo:</span> {% if equipo %}{{ equipo.nombre }}{% else
+                %}<em>Global (Múltiples)</em>{% endif %}</div>
             <div class="col-6"><span class="text-muted">Mes:</span> {{ orden.mes|default:"—" }}</div>
         </div>
     </div>
@@ -76,26 +77,20 @@
 <!-- ── SECCIÓN 1: Actividades ─────────────────────────── -->
 <div class="card mb-3">
     <div class="card-header-roa"><i class="bi bi-list-check me-1"></i>Actividades Realizadas</div>
-    <div class="card-body">
-        <form method="post" action="{% url 'operations:actualizar_actividades' orden.pk %}">
-            {% csrf_token %}
-            {% if es_preventivo %}
-            {% for act in actividades %}
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" name="actividad_marcada" value="{{ act.pk }}"
-                    id="act{{ act.pk }}" {% if act.marcada %}checked{% endif %}>
-                <label class="form-check-label" for="act{{ act.pk }}">{{ act.texto }}</label>
-            </div>
-            {% endfor %}
-            {% else %}
-            <label class="form-label">Descripción de actividades realizadas</label>
-            <textarea name="actividades_texto" class="form-control" rows="4"
-                placeholder="Describa las actividades realizadas...">{% for act in actividades %}{{ act.texto }}{% endfor %}</textarea>
-            {% endif %}
-            <button type="submit" class="btn btn-outline-primary btn-sm mt-3">
-                <i class="bi bi-save me-1"></i>Guardar actividades
-            </button>
-        </form>
+    <div class="card-body" id="div-actividades" data-preventivo="{% if es_preventivo %}1{% else %}0{% endif %}">
+        {% if es_preventivo %}
+        {% for act in actividades %}
+        <div class="form-check mb-2">
+            <input class="form-check-input actividad-checkbox" type="checkbox" name="actividad_marcada"
+                value="{{ act.pk }}" id="act{{ act.pk }}" {% if act.marcada %}checked{% endif %}>
+            <label class="form-check-label" for="act{{ act.pk }}">{{ act.texto }}</label>
+        </div>
+        {% endfor %}
+        {% else %}
+        <label class="form-label">Descripción de actividades realizadas</label>
+        <textarea name="actividades_texto" id="actividades-texto-input" class="form-control" rows="4"
+            placeholder="Describa las actividades realizadas...">{% for act in actividades %}{{ act.texto }}{% endfor %}</textarea>
+        {% endif %}
     </div>
 </div>
 
@@ -194,7 +189,8 @@
 
         {% for ei in equipos_intervenidos %}
         <div class="equipo-card-idx p-3 m-3">
-            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo }}</span></div>
+            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo
+                    }}</span></div>
             <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }}</div>
             {% if ei.observacion.texto %}<div class="small text-muted mt-1">{{ ei.observacion.texto }}</div>{% endif %}
         </div>
@@ -207,10 +203,8 @@
 <!-- Finalizar -->
 <div class="card mb-4">
     <div class="card-body">
-        <a href="{% url 'operations:pdf_orden' orden.pk %}" class="btn btn-outline-primary w-100 mb-2"
-            target="_blank">PDF</a>
         {% if equipos_intervenidos %}
-        <form method="post" action="{% url 'operations:finalizar_orden' orden.pk %}">
+        <form method="post" action="{% url 'operations:finalizar_orden' orden.pk %}" id="form-finalizar">
             {% csrf_token %}
             <button type="submit" class="btn btn-roa-primary w-100 py-3">Finalizar ({{ orden.radicado }})</button>
         </form>
@@ -234,7 +228,19 @@
         if (!eq) return;
         const form = document.getElementById('form-agregar-equipo');
         const setVal = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el) el.value = val || ''; };
+
         setVal('nombre_equipo', eq.nombre_equipo);
+        setVal('ubicacion', eq.ubicacion);
+        setVal('tipo_equipo', eq.tipo_equipo);
+        setVal('refrigerante', eq.refrigerante);
+        setVal('marca', eq.marca);
+        setVal('modelo', eq.modelo);
+        setVal('capacidad', eq.capacidad);
+        setVal('voltaje', eq.voltaje);
+        setVal('fases', eq.fases);
+        setVal('tipo_correa', eq.tipo_correa);
+        setVal('activo_fijo', eq.activo_fijo);
+
         updateTipoEq();
     }
     function setMedicion(tipo) {
@@ -242,5 +248,42 @@
         document.getElementById('panel-split').style.display = tipo === 'split' ? '' : 'none';
     }
     function updateTipoEq() { }
+
+    // Interceptar form de Agregar Equipo y Finalizar para inyectar las actividades
+    function inyectarActividades(formElement) {
+        // Limpiar inputs iframes viejos
+        formElement.querySelectorAll('.actividad-hidden').forEach(e => e.remove());
+
+        const isPreventivo = document.getElementById('div-actividades').dataset.preventivo === '1';
+
+        if (isPreventivo) {
+            document.querySelectorAll('.actividad-checkbox:checked').forEach(chk => {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'actividad_marcada';
+                hidden.value = chk.value;
+                hidden.className = 'actividad-hidden';
+                formElement.appendChild(hidden);
+            });
+        } else {
+            const txt = document.getElementById('actividades-texto-input');
+            if (txt && txt.value.trim() !== '') {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'actividades_texto';
+                hidden.value = txt.value;
+                hidden.className = 'actividad-hidden';
+                formElement.appendChild(hidden);
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const fa = document.getElementById('form-agregar-equipo');
+        if (fa) fa.addEventListener('submit', function () { inyectarActividades(this); });
+
+        const ff = document.getElementById('form-finalizar');
+        if (ff) ff.addEventListener('submit', function () { inyectarActividades(this); });
+    });
 </script>
 {% endblock %}
