@@ -297,27 +297,42 @@ class AgregarEquipoView(LoginRequiredMixin, View):
             ei.orden = orden
             ei.save()
 
-            tipo_eq = request.POST.get('tipo_medicion', 'uca')  # 'uca' o 'split'
+            def parse_decimal(val):
+                if not val: return None
+                return val.replace(',', '.')
 
-            if tipo_eq == 'uca':
-                circuit_labels = request.POST.getlist('circuito_label')
-                for label in circuit_labels:
-                    prefix = f'circ_{label}_'
+            # Save UCA (Pressures)
+            circuit_labels = request.POST.getlist('circuito_label')
+            for label in circuit_labels:
+                prefix = f'circ_{label}_'
+                baja_a = parse_decimal(request.POST.get(f'{prefix}baja_antes'))
+                baja_d = parse_decimal(request.POST.get(f'{prefix}baja_despues'))
+                alta_a = parse_decimal(request.POST.get(f'{prefix}alta_antes'))
+                alta_d = parse_decimal(request.POST.get(f'{prefix}alta_despues'))
+                
+                if baja_a or baja_d or alta_a or alta_d:
                     MedicionUCA.objects.create(
                         equipo_intervenido=ei,
                         circuito=label,
-                        baja_p_antes=request.POST.get(f'{prefix}baja_antes') or None,
-                        baja_p_despues=request.POST.get(f'{prefix}baja_despues') or None,
-                        alta_p_antes=request.POST.get(f'{prefix}alta_antes') or None,
-                        alta_p_despues=request.POST.get(f'{prefix}alta_despues') or None,
+                        baja_p_antes=baja_a,
+                        baja_p_despues=baja_d,
+                        alta_p_antes=alta_a,
+                        alta_p_despues=alta_d,
                     )
-            else:
+
+            # Save Split (Temperatures)
+            t_sum_a = parse_decimal(request.POST.get('temp_sumin_antes'))
+            t_sum_d = parse_decimal(request.POST.get('temp_sumin_despues'))
+            t_ret_a = parse_decimal(request.POST.get('temp_retorno_antes'))
+            t_ret_d = parse_decimal(request.POST.get('temp_retorno_despues'))
+            
+            if t_sum_a or t_sum_d or t_ret_a or t_ret_d:
                 MedicionSplit.objects.create(
                     equipo_intervenido=ei,
-                    temp_sumin_antes=request.POST.get('temp_sumin_antes') or None,
-                    temp_sumin_despues=request.POST.get('temp_sumin_despues') or None,
-                    temp_retorno_antes=request.POST.get('temp_retorno_antes') or None,
-                    temp_retorno_despues=request.POST.get('temp_retorno_despues') or None,
+                    temp_sumin_antes=t_sum_a,
+                    temp_sumin_despues=t_sum_d,
+                    temp_retorno_antes=t_ret_a,
+                    temp_retorno_despues=t_ret_d,
                 )
 
             obs_texto = request.POST.get('observacion', '').strip()

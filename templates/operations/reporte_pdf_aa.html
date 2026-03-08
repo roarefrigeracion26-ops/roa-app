@@ -231,9 +231,10 @@
         </tr>
         <tr>
             <td class="label-cell">Corriente L1/L2/L3 (A)</td>
-            <td>{{ ei.corriente_l1|default:"—" }} / {{ ei.corriente_l2|default:"—" }} / {{ ei.corriente_l3|default:"—" }}</td>
-            <td class="label-cell">Amperaje L1/L2/L3 (A)</td>
-            <td>{{ ei.amperaje_l1|default:"—" }} / {{ ei.amperaje_l2|default:"—" }} / {{ ei.amperaje_l3|default:"—" }}
+            <td colspan="3">
+                {{ ei.corriente_l1|floatformat:0|default:"—" }} /
+                {{ ei.corriente_l2|floatformat:0|default:"—" }} /
+                {{ ei.corriente_l3|floatformat:0|default:"—" }}
             </td>
         </tr>
         <tr>
@@ -260,19 +261,19 @@
         <tr>
             <td class="center bold" rowspan="2">{{ m.circuito }}</td>
             <td>Baja Presión</td>
-            <td class="center">{{ m.baja_p_antes|default:"—" }}</td>
-            <td class="center">{{ m.baja_p_despues|default:"—" }}</td>
+            <td class="center">{{ m.baja_p_antes|floatformat:0|default:"—" }}</td>
+            <td class="center">{{ m.baja_p_despues|floatformat:0|default:"—" }}</td>
         </tr>
         <tr>
             <td>Alta Presión</td>
-            <td class="center">{{ m.alta_p_antes|default:"—" }}</td>
-            <td class="center">{{ m.alta_p_despues|default:"—" }}</td>
+            <td class="center">{{ m.alta_p_antes|floatformat:0|default:"—" }}</td>
+            <td class="center">{{ m.alta_p_despues|floatformat:0|default:"—" }}</td>
         </tr>
         {% endfor %}
     </table>
     {% endif %}
 
-    {% if ei.medicion_split %}
+    {% if "SPLIT" in ei.tipo_equipo|upper or "UMA" in ei.tipo_equipo|upper or ei.tipo_equipo == "OTRO" %}
     <table style="margin-top:4px;">
         <tr>
             <th>Parámetro</th>
@@ -281,13 +282,13 @@
         </tr>
         <tr>
             <td>Temperatura de Suministro</td>
-            <td class="center">{{ ei.medicion_split.temp_sumin_antes|default:"—" }}</td>
-            <td class="center">{{ ei.medicion_split.temp_sumin_despues|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_sumin_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_sumin_despues|floatformat:1|default:"—" }}</td>
         </tr>
         <tr>
             <td>Temperatura de Retorno</td>
-            <td class="center">{{ ei.medicion_split.temp_retorno_antes|default:"—" }}</td>
-            <td class="center">{{ ei.medicion_split.temp_retorno_despues|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_retorno_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ ei.medicion_split.temp_retorno_despues|floatformat:1|default:"—" }}</td>
         </tr>
     </table>
     {% endif %}

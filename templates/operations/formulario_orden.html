@@ -120,7 +120,7 @@
                     </div>
                     {% endif %}
 
-                    <p class="section-title">Datos Ténicos del Equipo</p>
+                    <p class="section-title">Datos Técnicos del Equipo</p>
                     <div class="row g-2">
                         <div class="col-6"><label class="form-label">Nombre *</label><input type="text"
                                 name="nombre_equipo" class="form-control" required></div>
@@ -149,19 +149,21 @@
                                 class="form-control"></div>
                     </div>
                     <div class="row g-2 mt-2">
+                        <div class="col-4"><label class="form-label">Corriente L1</label><input type="number"
+                                step="0.01" name="corriente_l1" class="form-control"></div>
+                        <div class="col-4"><label class="form-label">Corriente L2</label><input type="number"
+                                step="0.01" name="corriente_l2" class="form-control"></div>
+                        <div class="col-4"><label class="form-label">Corriente L3</label><input type="number"
+                                step="0.01" name="corriente_l3" class="form-control"></div>
+                    </div>
+                    <div class="row g-2 mt-2">
                         <div class="col-6"><label class="form-label">Correa</label><input type="text" name="tipo_correa"
                                 class="form-control"></div>
                         <div class="col-6"><label class="form-label">Activo F.</label><input type="text"
                                 name="activo_fijo" class="form-control"></div>
                     </div>
 
-                    <p class="section-title mt-3">Mediciones</p>
-                    <div class="d-flex gap-2 mb-2">
-                        <label class="tab-tipo active-uca" id="tab-uca" onclick="setMedicion('uca')">Presiones</label>
-                        <label class="tab-tipo" id="tab-split" onclick="setMedicion('split')">Temperaturas</label>
-                        <input type="radio" name="tipo_medicion" value="uca" checked class="d-none">
-                        <input type="radio" name="tipo_medicion" value="split" class="d-none">
-                    </div>
+                    <p class="section-title mt-3">Mediciones - Presiones (PSI)</p>
 
                     <div id="panel-uca" class="seccion-medicion p-3">
                         <input type="hidden" name="circuito_label" value="A">
@@ -170,14 +172,24 @@
                                     name="circ_A_baja_antes" class="form-control" step="0.01"></div>
                             <div class="col-6"><label class="small">Baja Desp.</label><input type="number"
                                     name="circ_A_baja_despues" class="form-control" step="0.01"></div>
+                            <div class="col-6"><label class="small">Alta Antes</label><input type="number"
+                                    name="circ_A_alta_antes" class="form-control" step="0.01"></div>
+                            <div class="col-6"><label class="small">Alta Desp.</label><input type="number"
+                                    name="circ_A_alta_despues" class="form-control" step="0.01"></div>
                         </div>
                     </div>
-                    <div id="panel-split" class="seccion-medicion p-3" style="display:none">
+
+                    <p class="section-title mt-3">Mediciones - Temperaturas (°C)</p>
+                    <div id="panel-split" class="seccion-medicion p-3">
                         <div class="row g-2">
                             <div class="col-6"><label class="small">Sumin. Antes</label><input type="number"
                                     name="temp_sumin_antes" class="form-control" step="0.1"></div>
                             <div class="col-6"><label class="small">Sumin. Desp.</label><input type="number"
                                     name="temp_sumin_despues" class="form-control" step="0.1"></div>
+                            <div class="col-6"><label class="small">Retorno Antes</label><input type="number"
+                                    name="temp_retorno_antes" class="form-control" step="0.1"></div>
+                            <div class="col-6"><label class="small">Retorno Desp.</label><input type="number"
+                                    name="temp_retorno_despues" class="form-control" step="0.1"></div>
                         </div>
                     </div>
                     <textarea name="observacion" class="form-control mt-3" rows="2"
@@ -246,6 +258,14 @@
     function setMedicion(tipo) {
         document.getElementById('panel-uca').style.display = tipo === 'uca' ? '' : 'none';
         document.getElementById('panel-split').style.display = tipo === 'split' ? '' : 'none';
+
+        // Update hidden radio buttons to actually submit the correct value
+        const radios = document.getElementsByName('tipo_medicion');
+        for (let r of radios) {
+            if (r.value === tipo) {
+                r.checked = true;
+            }
+        }
     }
     function updateTipoEq() { }
 
