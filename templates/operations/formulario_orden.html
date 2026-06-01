@@ -104,7 +104,7 @@
     </div>
     <div class="card-body p-0">
         <div class="collapse" id="formAgregar">
-            <form method="post" action="{% url 'operations:agregar_equipo' orden.pk %}" id="form-agregar-equipo">
+            <form method="post" action="{% url 'operations:agregar_equipo_antes' orden.pk %}" id="form-agregar-equipo">
                 {% csrf_token %}
                 <div class="p-3 border-bottom">
                     {% if equipos_db %}
@@ -163,22 +163,21 @@
                                 name="activo_fijo" class="form-control"></div>
                     </div>
 
-                    <p class="section-title mt-3">Mediciones - Presiones (PSI)</p>
+                    <p class="section-title mt-3 border-bottom border-primary border-2 pb-1">
+                        <i class="bi bi-thermometer-half me-1"></i>Paso 1 — Mediciones Iniciales (Antes)
+                    </p>
+
+                    <p class="section-title mt-3">Presiones (PSI) — Antes</p>
 
                     <div id="panel-uca" class="seccion-medicion p-3">
                         <input type="hidden" name="circuito_label" value="A">
                         <div class="row g-2">
                             <div class="col-6"><label class="small">Baja Antes</label><input type="number"
                                     name="circ_A_baja_antes" class="form-control" step="0.01"></div>
-                            <div class="col-6"><label class="small">Baja Desp.</label><input type="number"
-                                    name="circ_A_baja_despues" class="form-control" step="0.01"></div>
                             <div class="col-6"><label class="small">Alta Antes</label><input type="number"
                                     name="circ_A_alta_antes" class="form-control" step="0.01"></div>
-                            <div class="col-6"><label class="small">Alta Desp.</label><input type="number"
-                                    name="circ_A_alta_despues" class="form-control" step="0.01"></div>
                         </div>
 
-                        <!-- Botón para mostrar Circuito B -->
                         <div class="mt-2 text-center" id="btn-add-circuito-b">
                             <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2"
                                 onclick="toggleCircuitoB(true)">
@@ -186,7 +185,6 @@
                             </button>
                         </div>
 
-                        <!-- Panel Circuito B (Oculto por defecto) -->
                         <div id="panel-uca-B" class="mt-3 pt-3 border-top border-secondary border-opacity-10"
                             style="display:none">
                             <input type="hidden" name="circuito_label" value="B" id="input-label-B" disabled>
@@ -198,33 +196,23 @@
                             <div class="row g-2">
                                 <div class="col-6"><label class="small">Baja Antes</label><input type="number"
                                         name="circ_B_baja_antes" class="form-control" step="0.01"></div>
-                                <div class="col-6"><label class="small">Baja Desp.</label><input type="number"
-                                        name="circ_B_baja_despues" class="form-control" step="0.01"></div>
                                 <div class="col-6"><label class="small">Alta Antes</label><input type="number"
                                         name="circ_B_alta_antes" class="form-control" step="0.01"></div>
-                                <div class="col-6"><label class="small">Alta Desp.</label><input type="number"
-                                        name="circ_B_alta_despues" class="form-control" step="0.01"></div>
                             </div>
                         </div>
                     </div>
 
-                    <p class="section-title mt-3">Mediciones - Temperaturas (°C)</p>
+                    <p class="section-title mt-3">Temperaturas (°C) — Antes</p>
                     <div id="panel-split" class="seccion-medicion p-3">
                         <div class="row g-2">
                             <div class="col-6"><label class="small">Sumin. Antes</label><input type="number"
                                     name="temp_sumin_antes" class="form-control" step="0.1"></div>
-                            <div class="col-6"><label class="small">Sumin. Desp.</label><input type="number"
-                                    name="temp_sumin_despues" class="form-control" step="0.1"></div>
                             <div class="col-6"><label class="small">Retorno Antes</label><input type="number"
                                     name="temp_retorno_antes" class="form-control" step="0.1"></div>
-                            <div class="col-6"><label class="small">Retorno Desp.</label><input type="number"
-                                    name="temp_retorno_despues" class="form-control" step="0.1"></div>
                         </div>
                     </div>
-                    <textarea name="observacion" class="form-control mt-3" rows="2"
-                        placeholder="Observaciones..."></textarea>
                 </div>
-                <div class="p-3"><button type="submit" class="btn btn-roa-primary w-100">Agregar Equipo</button></div>
+                <div class="p-3"><button type="submit" class="btn btn-roa-primary w-100">Guardar Mediciones Iniciales</button></div>
             </form>
         </div>
 
@@ -240,6 +228,61 @@
         {% endfor %}
     </div>
 </div>
+
+<!-- ── SECCIÓN 3: Equipos Pendientes — Mediciones Finales ── -->
+{% if equipos_pendientes %}
+<div class="card mb-3 border-warning">
+    <div class="card-header-roa" style="background: var(--roa-gold); color: #000;">
+        <i class="bi bi-exclamation-triangle me-1"></i>Pendientes — Mediciones Finales (Después)
+    </div>
+    <div class="card-body">
+        {% for ei in equipos_pendientes %}
+        <div class="border rounded p-3 mb-3">
+            <div class="fw-bold mb-2">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo }}</span></div>
+            <form method="post" action="{% url 'operations:completar_equipo_despues' orden.pk ei.pk %}" class="form-completar-despues">
+                {% csrf_token %}
+
+                {% for uca in ei.mediciones_uca.all %}
+                <input type="hidden" name="circuito_label" value="{{ uca.circuito }}">
+                <div class="seccion-medicion p-3 mb-2">
+                    <p class="small fw-bold">Circuito {{ uca.circuito }} — Presiones Después (PSI)</p>
+                    <div class="row g-2">
+                        <div class="col-6"><label class="small">Baja Desp.</label><input type="number"
+                                name="circ_{{ uca.circuito }}_baja_despues" class="form-control" step="0.01"
+                                value="{{ uca.baja_p_despues|default:'' }}"></div>
+                        <div class="col-6"><label class="small">Alta Desp.</label><input type="number"
+                                name="circ_{{ uca.circuito }}_alta_despues" class="form-control" step="0.01"
+                                value="{{ uca.alta_p_despues|default:'' }}"></div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if ei.medicion_split %}
+                <div class="seccion-medicion p-3 mb-2">
+                    <p class="small fw-bold">Temperaturas Después (°C)</p>
+                    <div class="row g-2">
+                        <div class="col-6"><label class="small">Sumin. Desp.</label><input type="number"
+                                name="temp_sumin_despues" class="form-control" step="0.1"
+                                value="{{ ei.medicion_split.temp_sumin_despues|default:'' }}"></div>
+                        <div class="col-6"><label class="small">Retorno Desp.</label><input type="number"
+                                name="temp_retorno_despues" class="form-control" step="0.1"
+                                value="{{ ei.medicion_split.temp_retorno_despues|default:'' }}"></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <textarea name="observacion" class="form-control mt-2" rows="2"
+                    placeholder="Observaciones — ¿cómo quedó el equipo?">{{ ei.observacion.texto|default:'' }}</textarea>
+
+                <button type="submit" class="btn btn-roa-primary w-100 mt-2">
+                    <i class="bi bi-check-circle me-1"></i>Guardar Mediciones Finales
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Finalizar -->
 <div class="card mb-4">
@@ -317,7 +360,7 @@
         }
     }
 
-    // Interceptar form de Agregar Equipo y Finalizar para inyectar las actividades
+    // Interceptar forms para inyectar las actividades
     function inyectarActividades(formElement) {
         // Limpiar inputs iframes viejos
         formElement.querySelectorAll('.actividad-hidden').forEach(e => e.remove());
@@ -349,6 +392,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         const fa = document.getElementById('form-agregar-equipo');
         if (fa) fa.addEventListener('submit', function () { inyectarActividades(this); });
+
+        document.querySelectorAll('.form-completar-despues').forEach(f => {
+            f.addEventListener('submit', function () { inyectarActividades(this); });
+        });
 
         const ff = document.getElementById('form-finalizar');
         if (ff) ff.addEventListener('submit', function () { inyectarActividades(this); });
