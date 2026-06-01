@@ -244,11 +244,26 @@ class FormularioOrdenView(LoginRequiredMixin, View):
             equipos_db = []
             equipos_json = []
 
+        equipos_pendientes = []
+        for ei in equipos_intervenidos:
+            pendiente = False
+            for uca in ei.mediciones_uca.all():
+                if uca.baja_p_despues is None or uca.alta_p_despues is None:
+                    pendiente = True
+                    break
+            if hasattr(ei, 'medicion_split') and ei.medicion_split:
+                ms = ei.medicion_split
+                if ms.temp_sumin_despues is None or ms.temp_retorno_despues is None:
+                    pendiente = True
+            if pendiente:
+                equipos_pendientes.append(ei)
+
         return {
             'orden': orden,
             'equipo': orden.equipo, # Puede ser nulo
             'cliente': orden.cliente, # Para mostrar la tienda global
             'equipos_intervenidos': equipos_intervenidos,
+            'equipos_pendientes': equipos_pendientes,
             'actividades': actividades,
             'equipo_form': EquipoIntervenidoForm(),
             'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
@@ -279,10 +294,10 @@ def _guardar_actividades_orden(request, orden):
             Actividad.objects.create(orden=orden, texto=texto, marcada=True)
 
 # ─────────────────────────────────────────────────────────
-# AgregarEquipoView: agrega un EquipoIntervenido y sus mediciones
+# AgregarEquipoAntesView: agrega un EquipoIntervenido solo con mediciones iniciales
 # ─────────────────────────────────────────────────────────
-class AgregarEquipoView(LoginRequiredMixin, View):
-    """POST: agrega un equipo intervenido con sus mediciones y guarda actividades pendientes."""
+class AgregarEquipoAntesView(LoginRequiredMixin, View):
+    """POST: agrega un equipo intervenido con mediciones ANTES. Las mediciones DESPUES se completan después."""
 
     def post(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
@@ -301,42 +316,85 @@ class AgregarEquipoView(LoginRequiredMixin, View):
                 if not val: return None
                 return val.replace(',', '.')
 
-            # Save UCA (Pressures)
+            # Save UCA (Pressures) — solo ANTES
             circuit_labels = request.POST.getlist('circuito_label')
             for label in circuit_labels:
                 prefix = f'circ_{label}_'
                 baja_a = parse_decimal(request.POST.get(f'{prefix}baja_antes'))
-                baja_d = parse_decimal(request.POST.get(f'{prefix}baja_despues'))
                 alta_a = parse_decimal(request.POST.get(f'{prefix}alta_antes'))
-                alta_d = parse_decimal(request.POST.get(f'{prefix}alta_despues'))
                 
-                if baja_a or baja_d or alta_a or alta_d:
+                if baja_a or alta_a:
                     MedicionUCA.objects.create(
                         equipo_intervenido=ei,
                         circuito=label,
                         baja_p_antes=baja_a,
-                        baja_p_despues=baja_d,
                         alta_p_antes=alta_a,
-                        alta_p_despues=alta_d,
                     )
 
-            # Save Split (Temperatures)
+            # Save Split (Temperatures) — solo ANTES
             t_sum_a = parse_decimal(request.POST.get('temp_sumin_antes'))
-            t_sum_d = parse_decimal(request.POST.get('temp_sumin_despues'))
             t_ret_a = parse_decimal(request.POST.get('temp_retorno_antes'))
-            t_ret_d = parse_decimal(request.POST.get('temp_retorno_despues'))
             
-            if t_sum_a or t_sum_d or t_ret_a or t_ret_d:
+            if t_sum_a or t_ret_a:
                 MedicionSplit.objects.create(
                     equipo_intervenido=ei,
                     temp_sumin_antes=t_sum_a,
-                    temp_sumin_despues=t_sum_d,
                     temp_retorno_antes=t_ret_a,
-                    temp_retorno_despues=t_ret_d,
                 )
 
-            obs_texto = request.POST.get('observacion', '').strip()
-            Observacion.objects.create(equipo_intervenido=ei, texto=obs_texto)
+        return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
+# CompletarEquipoDespuesView: actualiza mediciones DESPUES de un equipo intervenido
+# ─────────────────────────────────────────────────────────
+class CompletarEquipoDespuesView(LoginRequiredMixin, View):
+    """POST: actualiza las mediciones DESPUES de un equipo ya intervenido."""
+
+    def post(self, request, orden_id, equipo_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+        ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
+        _guardar_actividades_orden(request, orden)
+
+        def parse_decimal(val):
+            if not val: return None
+            return val.replace(',', '.')
+
+        # Update UCA — solo DESPUES
+        circuit_labels = request.POST.getlist('circuito_label')
+        for label in circuit_labels:
+            prefix = f'circ_{label}_'
+            baja_d = parse_decimal(request.POST.get(f'{prefix}baja_despues'))
+            alta_d = parse_decimal(request.POST.get(f'{prefix}alta_despues'))
+
+            if baja_d or alta_d:
+                MedicionUCA.objects.update_or_create(
+                    equipo_intervenido=ei,
+                    circuito=label,
+                    defaults={
+                        'baja_p_despues': baja_d,
+                        'alta_p_despues': alta_d,
+                    }
+                )
+
+        # Update Split — solo DESPUES
+        t_sum_d = parse_decimal(request.POST.get('temp_sumin_despues'))
+        t_ret_d = parse_decimal(request.POST.get('temp_retorno_despues'))
+
+        if t_sum_d or t_ret_d:
+            MedicionSplit.objects.update_or_create(
+                equipo_intervenido=ei,
+                defaults={
+                    'temp_sumin_despues': t_sum_d,
+                    'temp_retorno_despues': t_ret_d,
+                }
+            )
+
+        envio_texto = request.POST.get('observacion', '').strip()
+        Observacion.objects.update_or_create(
+            equipo_intervenido=ei,
+            defaults={'texto': envio_texto}
+        )
 
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 
