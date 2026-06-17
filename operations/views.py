@@ -20,7 +20,7 @@ SPANISH_MONTHS = {
 from inventory.models import EquipoAA
 from .models import (
     OrdenServicio, EquipoIntervenido, MedicionUCA, MedicionSplit,
-    Actividad, Observacion, TipoMantenimiento, EstadoOrden
+    MedicionCondensadoraRack, Actividad, Observacion, TipoMantenimiento, EstadoOrden
 )
 from .services import (
     tecnico_tiene_preventivo_abierto,
@@ -31,7 +31,7 @@ from .services import (
 )
 from .forms import (
     NuevaOrdenForm, EquipoIntervenidoForm,
-    MedicionUCAForm, MedicionSplitForm,
+    MedicionUCAForm, MedicionSplitForm, MedicionCondensadoraRackForm,
     ActividadForm, ActividadCorrectivForm, ObservacionForm,
 )
 
@@ -217,7 +217,7 @@ class FormularioOrdenView(LoginRequiredMixin, View):
 
     def _get_context(self, orden):
         equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
-            'mediciones_uca', 'medicion_split', 'observacion'
+            'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
         ).all()
         actividades = orden.actividades.all()
         
@@ -247,13 +247,19 @@ class FormularioOrdenView(LoginRequiredMixin, View):
         equipos_pendientes = []
         for ei in equipos_intervenidos:
             pendiente = False
-            for uca in ei.mediciones_uca.all():
-                if uca.baja_p_despues is None or uca.alta_p_despues is None:
+            tipo = ei.tipo_equipo
+            if tipo == 'UCA':
+                for uca in ei.mediciones_uca.all():
+                    if uca.baja_p_despues is None or uca.alta_p_despues is None:
+                        pendiente = True
+                        break
+            elif tipo in ('UMA', 'SPLIT', 'OTRO'):
+                ms = getattr(ei, 'medicion_split', None)
+                if ms and (ms.temp_sumin_despues is None or ms.temp_retorno_despues is None):
                     pendiente = True
-                    break
-            if hasattr(ei, 'medicion_split') and ei.medicion_split:
-                ms = ei.medicion_split
-                if ms.temp_sumin_despues is None or ms.temp_retorno_despues is None:
+            elif tipo == 'CONDENSADORA_RACK':
+                mr = getattr(ei, 'medicion_condensadora_rack', None)
+                if mr and (mr.presion_entrada_despues is None or mr.temp_salida_despues is None):
                     pendiente = True
             if pendiente:
                 equipos_pendientes.append(ei)
@@ -342,6 +348,23 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
                     temp_retorno_antes=t_ret_a,
                 )
 
+            # Save Condensadora Rack — solo ANTES
+            cr_corriente_l1 = parse_decimal(request.POST.get('cr_corriente_l1_antes'))
+            cr_corriente_l2 = parse_decimal(request.POST.get('cr_corriente_l2_antes'))
+            cr_corriente_l3 = parse_decimal(request.POST.get('cr_corriente_l3_antes'))
+            cr_presion = parse_decimal(request.POST.get('cr_presion_entrada_antes'))
+            cr_temp = parse_decimal(request.POST.get('cr_temp_salida_antes'))
+
+            if any([cr_corriente_l1, cr_corriente_l2, cr_corriente_l3, cr_presion, cr_temp]):
+                MedicionCondensadoraRack.objects.create(
+                    equipo_intervenido=ei,
+                    corriente_l1_antes=cr_corriente_l1,
+                    corriente_l2_antes=cr_corriente_l2,
+                    corriente_l3_antes=cr_corriente_l3,
+                    presion_entrada_antes=cr_presion,
+                    temp_salida_antes=cr_temp,
+                )
+
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 
 
@@ -390,6 +413,42 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
                 }
             )
 
+        # Update Condensadora Rack — solo DESPUES
+        cr_corriente_l1 = parse_decimal(request.POST.get('cr_corriente_l1_despues'))
+        cr_corriente_l2 = parse_decimal(request.POST.get('cr_corriente_l2_despues'))
+        cr_corriente_l3 = parse_decimal(request.POST.get('cr_corriente_l3_despues'))
+        cr_presion = parse_decimal(request.POST.get('cr_presion_entrada_despues'))
+        cr_temp = parse_decimal(request.POST.get('cr_temp_salida_despues'))
+        cr_temp_amb = parse_decimal(request.POST.get('cr_temp_ambiente_despues'))
+        cr_total = request.POST.get('cr_total_abanicos')
+        cr_operativos = request.POST.get('cr_abanicos_operativos')
+
+        def parse_int(val):
+            if not val: return None
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return None
+
+        cr_total_i = parse_int(cr_total)
+        cr_operativos_i = parse_int(cr_operativos)
+
+        if any([cr_corriente_l1, cr_corriente_l2, cr_corriente_l3, cr_presion, cr_temp, cr_temp_amb,
+                cr_total_i is not None, cr_operativos_i is not None]):
+            MedicionCondensadoraRack.objects.update_or_create(
+                equipo_intervenido=ei,
+                defaults={
+                    'corriente_l1_despues': cr_corriente_l1,
+                    'corriente_l2_despues': cr_corriente_l2,
+                    'corriente_l3_despues': cr_corriente_l3,
+                    'presion_entrada_despues': cr_presion,
+                    'temp_salida_despues': cr_temp,
+                    'temp_ambiente_despues': cr_temp_amb,
+                    'total_abanicos': cr_total_i,
+                    'abanicos_operativos': cr_operativos_i,
+                }
+            )
+
         envio_texto = request.POST.get('observacion', '').strip()
         Observacion.objects.update_or_create(
             equipo_intervenido=ei,
@@ -411,6 +470,19 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
             _guardar_actividades_orden(request, orden)
             orden.marcar_cerrado()
         return redirect('operations:orden_cerrada', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
+# CancelarOrdenView: elimina un preventivo abierto para empezar de nuevo
+# ─────────────────────────────────────────────────────────
+class CancelarOrdenView(LoginRequiredMixin, View):
+    """POST: elimina el preventivo MP abierto si se seleccionó la tienda equivocada."""
+
+    def post(self, request, orden_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
+        if orden.tipo == TipoMantenimiento.PREVENTIVO and orden.estado == EstadoOrden.ABIERTO:
+            orden.delete()
+        return redirect('inventory:clientes')
 
 
 # ─────────────────────────────────────────────────────────
@@ -436,7 +508,7 @@ class PDFOrdenView(LoginRequiredMixin, View):
     def get(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id)
         equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
-            'mediciones_uca', 'medicion_split', 'observacion'
+            'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
         ).all()
         actividades = orden.actividades.all()
 

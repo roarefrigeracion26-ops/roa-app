@@ -132,6 +132,8 @@
                                 <option value="UCA">UCA</option>
                                 <option value="UMA">UMA</option>
                                 <option value="SPLIT">Split</option>
+                                <option value="PAQUETE">Paquete</option>
+                                <option value="CONDENSADORA_RACK">Condensadora Rack</option>
                                 <option value="OTRO">Otro</option>
                             </select>
                         </div>
@@ -211,6 +213,24 @@
                                     name="temp_retorno_antes" class="form-control" step="0.1"></div>
                         </div>
                     </div>
+
+                    <div id="panel-condensadora" class="seccion-medicion p-3 mt-3" style="display:none">
+                        <p class="small fw-bold text-success"><i class="bi bi-fan me-1"></i>Condensadora Rack — Mediciones Iniciales (Antes)</p>
+                        <div class="row g-2">
+                            <div class="col-4"><label class="small">Corriente L1 (A)</label><input type="number"
+                                    name="cr_corriente_l1_antes" class="form-control" step="0.01"></div>
+                            <div class="col-4"><label class="small">Corriente L2 (A)</label><input type="number"
+                                    name="cr_corriente_l2_antes" class="form-control" step="0.01"></div>
+                            <div class="col-4"><label class="small">Corriente L3 (A)</label><input type="number"
+                                    name="cr_corriente_l3_antes" class="form-control" step="0.01"></div>
+                        </div>
+                        <div class="row g-2 mt-2">
+                            <div class="col-6"><label class="small">Presión de entrada a la condensadora (PSI)</label><input type="number"
+                                    name="cr_presion_entrada_antes" class="form-control" step="0.01"></div>
+                            <div class="col-6"><label class="small">Temperatura de salida abanicos (°C)</label><input type="number"
+                                    name="cr_temp_salida_antes" class="form-control" step="0.1"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="p-3"><button type="submit" class="btn btn-roa-primary w-100">Guardar Mediciones Iniciales</button></div>
             </form>
@@ -271,6 +291,44 @@
                 </div>
                 {% endif %}
 
+                {% if ei.medicion_condensadora_rack %}
+                {% with mr=ei.medicion_condensadora_rack %}
+                <div class="seccion-medicion p-3 mb-2">
+                    <p class="small fw-bold text-success"><i class="bi bi-fan me-1"></i>Condensadora Rack — Mediciones Finales (Después)</p>
+                    <div class="row g-2">
+                        <div class="col-4"><label class="small">Corriente L1 (A)</label><input type="number"
+                                name="cr_corriente_l1_despues" class="form-control" step="0.01"
+                                value="{{ mr.corriente_l1_despues|default:'' }}"></div>
+                        <div class="col-4"><label class="small">Corriente L2 (A)</label><input type="number"
+                                name="cr_corriente_l2_despues" class="form-control" step="0.01"
+                                value="{{ mr.corriente_l2_despues|default:'' }}"></div>
+                        <div class="col-4"><label class="small">Corriente L3 (A)</label><input type="number"
+                                name="cr_corriente_l3_despues" class="form-control" step="0.01"
+                                value="{{ mr.corriente_l3_despues|default:'' }}"></div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-6"><label class="small">Presión de entrada a la condensadora (PSI)</label><input type="number"
+                                name="cr_presion_entrada_despues" class="form-control" step="0.01"
+                                value="{{ mr.presion_entrada_despues|default:'' }}"></div>
+                        <div class="col-6"><label class="small">Temperatura de salida abanicos (°C)</label><input type="number"
+                                name="cr_temp_salida_despues" class="form-control" step="0.1"
+                                value="{{ mr.temp_salida_despues|default:'' }}"></div>
+                    </div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-4"><label class="small">Temperatura ambiente (°C)</label><input type="number"
+                                name="cr_temp_ambiente_despues" class="form-control" step="0.1"
+                                value="{{ mr.temp_ambiente_despues|default:'' }}"></div>
+                        <div class="col-4"><label class="small">Total abanicos</label><input type="number"
+                                name="cr_total_abanicos" class="form-control" inputmode="numeric" step="1"
+                                value="{{ mr.total_abanicos|default:'' }}"></div>
+                        <div class="col-4"><label class="small">Abanicos operativos</label><input type="number"
+                                name="cr_abanicos_operativos" class="form-control" inputmode="numeric" step="1"
+                                value="{{ mr.abanicos_operativos|default:'' }}"></div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endif %}
+
                 <textarea name="observacion" class="form-control mt-2" rows="2"
                     placeholder="Observaciones — ¿cómo quedó el equipo?">{{ ei.observacion.texto|default:'' }}</textarea>
 
@@ -284,13 +342,22 @@
 </div>
 {% endif %}
 
-<!-- Finalizar -->
+<!-- Finalizar / Cancelar -->
 <div class="card mb-4">
     <div class="card-body">
         {% if equipos_intervenidos %}
         <form method="post" action="{% url 'operations:finalizar_orden' orden.pk %}" id="form-finalizar">
             {% csrf_token %}
             <button type="submit" class="btn btn-roa-primary w-100 py-3">Finalizar ({{ orden.radicado }})</button>
+        </form>
+        {% endif %}
+        {% if es_preventivo %}
+        <form method="post" action="{% url 'operations:cancelar_orden' orden.pk %}"
+            onsubmit="return confirm('¿Cancelar el preventivo {{ orden.radicado }}? Se borrará por completo para poder iniciar uno nuevo en otra tienda.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger w-100 mt-2">
+                <i class="bi bi-x-circle me-1"></i>Cancelar Preventivo
+            </button>
         </form>
         {% endif %}
     </div>
@@ -339,7 +406,12 @@
             }
         }
     }
-    function updateTipoEq() { }
+    function updateTipoEq() {
+        const tipo = document.getElementById('sel-tipo-eq').value;
+        document.getElementById('panel-uca').style.display = (tipo === 'UCA') ? '' : 'none';
+        document.getElementById('panel-split').style.display = (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'OTRO') ? '' : 'none';
+        document.getElementById('panel-condensadora').style.display = (tipo === 'CONDENSADORA_RACK') ? '' : 'none';
+    }
 
     function toggleCircuitoB(show) {
         const panel = document.getElementById('panel-uca-B');

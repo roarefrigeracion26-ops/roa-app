@@ -214,3 +214,69 @@ class Observacion(models.Model):
 
     def __str__(self):
         return f'Obs. — {self.equipo_intervenido}'
+
+
+class MedicionCondensadoraRack(models.Model):
+    """Mediciones para lavado de condensadora de rack de refrigeración."""
+    equipo_intervenido = models.OneToOneField(
+        EquipoIntervenido, on_delete=models.CASCADE, related_name='medicion_condensadora_rack'
+    )
+    # Antes
+    corriente_l1_antes = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Corriente L1 Antes (A)'
+    )
+    corriente_l2_antes = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Corriente L2 Antes (A)'
+    )
+    corriente_l3_antes = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Corriente L3 Antes (A)'
+    )
+    presion_entrada_antes = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Presión de entrada a la condensadora Antes (PSI)'
+    )
+    temp_salida_antes = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        verbose_name='Temperatura de salida abanicos Antes (°C)'
+    )
+    # Despues
+    corriente_l1_despues = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Corriente L1 Después (A)'
+    )
+    corriente_l2_despues = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Corriente L2 Después (A)'
+    )
+    corriente_l3_despues = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Corriente L3 Después (A)'
+    )
+    presion_entrada_despues = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        verbose_name='Presión de entrada a la condensadora Después (PSI)'
+    )
+    temp_salida_despues = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        verbose_name='Temperatura de salida abanicos Después (°C)'
+    )
+    temp_ambiente_despues = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        verbose_name='Temperatura ambiente Después (°C)'
+    )
+    total_abanicos = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name='Total abanicos'
+    )
+    abanicos_operativos = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name='Abanicos operativos'
+    )
+
+    class Meta:
+        verbose_name = 'Medición Condensadora Rack'
+        verbose_name_plural = 'Mediciones Condensadora Rack'
+
+    def __str__(self):
+        return f'Condensadora Rack — {self.equipo_intervenido}'

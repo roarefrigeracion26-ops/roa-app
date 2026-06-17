@@ -3,6 +3,7 @@ from django.db import models
 
 class Cliente(models.Model):
     """Cliente / sucursal donde están instalados los equipos de AA."""
+    codigo = models.IntegerField(blank=True, null=True, unique=True, verbose_name='Código de tienda')
     nombre = models.CharField(max_length=200)
     dir_cliente = models.CharField(max_length=300, blank=True, verbose_name='Dirección')
     activo = models.BooleanField(default=True)
@@ -22,6 +23,8 @@ class TipoEquipo(models.TextChoices):
     SPLIT = 'SPLIT', 'Split'
     CASSETTE = 'CASSETTE', 'Cassette'
     PISO_TECHO = 'PISO_TECHO', 'Piso Techo'
+    PAQUETE = 'PAQUETE', 'Paquete'
+    CONDENSADORA_RACK = 'CONDENSADORA_RACK', 'Condensadora Rack Refrigeración'
     OTRO = 'OTRO', 'Otro'
 
 

@@ -293,6 +293,60 @@
     </table>
     {% endif %}
 
+    {% if ei.tipo_equipo == "CONDENSADORA_RACK" and ei.medicion_condensadora_rack %}
+    {% with mr=ei.medicion_condensadora_rack %}
+    <table style="margin-top:4px;">
+        <tr>
+            <th>Parámetro</th>
+            <th>Antes</th>
+            <th>Después</th>
+        </tr>
+        <tr>
+            <td>Corriente L1 (A)</td>
+            <td class="center">{{ mr.corriente_l1_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ mr.corriente_l1_despues|floatformat:1|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td>Corriente L2 (A)</td>
+            <td class="center">{{ mr.corriente_l2_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ mr.corriente_l2_despues|floatformat:1|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td>Corriente L3 (A)</td>
+            <td class="center">{{ mr.corriente_l3_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ mr.corriente_l3_despues|floatformat:1|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td>Presión de entrada (PSI)</td>
+            <td class="center">{{ mr.presion_entrada_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ mr.presion_entrada_despues|floatformat:1|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td>Temp. salida abanicos (°C)</td>
+            <td class="center">{{ mr.temp_salida_antes|floatformat:1|default:"—" }}</td>
+            <td class="center">{{ mr.temp_salida_despues|floatformat:1|default:"—" }}</td>
+        </tr>
+    </table>
+    <table style="margin-top:3px;">
+        <tr>
+            <th colspan="2">Datos de abanicos</th>
+        </tr>
+        <tr>
+            <td class="label-cell">Temperatura ambiente (°C)</td>
+            <td class="center">{{ mr.temp_ambiente_despues|floatformat:1|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Total abanicos</td>
+            <td class="center">{{ mr.total_abanicos|default:"—" }}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">Abanicos operativos</td>
+            <td class="center">{{ mr.abanicos_operativos|default:"—" }}</td>
+        </tr>
+    </table>
+    {% endwith %}
+    {% endif %}
+
     <table style="margin-top:3px;">
         <tr>
             <td class="label-cell" style="width:20%;">Observaciones</td>

@@ -3,7 +3,7 @@ Formularios para SGMAA.
 """
 from django import forms
 from django.utils import timezone
-from .models import TipoMantenimiento, EquipoIntervenido, MedicionUCA, MedicionSplit, Actividad
+from .models import TipoMantenimiento, EquipoIntervenido, MedicionUCA, MedicionSplit, MedicionCondensadoraRack, Actividad
 
 REFRIGERANTE_CHOICES = [
     ('', '— Seleccionar —'),
@@ -23,6 +23,8 @@ TIPO_EQUIPO_CHOICES = [
     ('SPLIT', 'Split'),
     ('CASSETTE', 'Cassette'),
     ('PISO_TECHO', 'Piso Techo'),
+    ('PAQUETE', 'Paquete'),
+    ('CONDENSADORA_RACK', 'Condensadora Rack Refrigeración'),
     ('OTRO', 'Otro'),
 ]
 
@@ -190,6 +192,34 @@ class ActividadCorrectivForm(forms.Form):
             'placeholder': 'Describa las actividades realizadas durante el mantenimiento correctivo...',
         })
     )
+
+
+class MedicionCondensadoraRackForm(forms.ModelForm):
+    """Mediciones para lavado de condensadora de rack de refrigeración."""
+    class Meta:
+        model = MedicionCondensadoraRack
+        fields = [
+            'corriente_l1_antes', 'corriente_l2_antes', 'corriente_l3_antes',
+            'presion_entrada_antes', 'temp_salida_antes',
+            'corriente_l1_despues', 'corriente_l2_despues', 'corriente_l3_despues',
+            'presion_entrada_despues', 'temp_salida_despues', 'temp_ambiente_despues',
+            'total_abanicos', 'abanicos_operativos',
+        ]
+        widgets = {
+            'corriente_l1_antes': _num_input('L1'),
+            'corriente_l2_antes': _num_input('L2'),
+            'corriente_l3_antes': _num_input('L3'),
+            'presion_entrada_antes': _num_input('PSI'),
+            'temp_salida_antes': _num_input('°C'),
+            'corriente_l1_despues': _num_input('L1'),
+            'corriente_l2_despues': _num_input('L2'),
+            'corriente_l3_despues': _num_input('L3'),
+            'presion_entrada_despues': _num_input('PSI'),
+            'temp_salida_despues': _num_input('°C'),
+            'temp_ambiente_despues': _num_input('°C'),
+            'total_abanicos': forms.NumberInput(attrs={'class': 'form-control', 'inputmode': 'numeric', 'step': '1'}),
+            'abanicos_operativos': forms.NumberInput(attrs={'class': 'form-control', 'inputmode': 'numeric', 'step': '1'}),
+        }
 
 
 class ObservacionForm(forms.Form):
