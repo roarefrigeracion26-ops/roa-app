@@ -365,7 +365,11 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
                     temp_salida_antes=cr_temp,
                 )
 
-        return redirect('operations:formulario_orden', orden_id=orden.pk)
+            return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+        context = self._get_context(orden)
+        context['equipo_form'] = equipo_form
+        return render(request, 'operations/formulario_orden.html', context)
 
 
 # ─────────────────────────────────────────────────────────
