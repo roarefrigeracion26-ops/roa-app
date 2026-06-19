@@ -106,6 +106,17 @@ class EquipoIntervenidoForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'}),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.data:
+            mutable = self.data.copy()
+            for name in list(mutable.keys()):
+                if name in self.fields and isinstance(self.fields[name], forms.DecimalField):
+                    val = mutable[name]
+                    if isinstance(val, str):
+                        mutable[name] = val.replace(',', '.')
+            self.data = mutable
+
     class Meta:
         model = EquipoIntervenido
         fields = [
