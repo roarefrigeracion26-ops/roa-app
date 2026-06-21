@@ -499,6 +499,14 @@
 
         const ff = document.getElementById('form-finalizar');
         if (ff) ff.addEventListener('submit', function () { inyectarActividades(this); });
+
+        // Deshabilitar botón submit en todos los forms del formulario
+        document.querySelectorAll('form').forEach(f => {
+            f.addEventListener('submit', function () {
+                const btn = this.querySelector('button[type="submit"]');
+                if (btn) btn.disabled = true;
+            });
+        });
     });
 </script>
 {% endblock %}
