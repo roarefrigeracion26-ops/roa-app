@@ -161,7 +161,7 @@
                         <div class="col-4"><label class="form-label">Fases</label><input type="text" name="fases"
                                 class="form-control"></div>
                     </div>
-                    <div class="row g-2 mt-2">
+                    <div class="row g-2 mt-2" id="panel-corrientes-gen">
                         <div class="col-4"><label class="form-label">Corriente L1</label><input type="number"
                                 step="0.01" name="corriente_l1" class="form-control"></div>
                         <div class="col-4"><label class="form-label">Corriente L2</label><input type="number"
@@ -422,6 +422,7 @@
         document.getElementById('panel-uca').style.display = (tipo === 'UCA') ? '' : 'none';
         document.getElementById('panel-split').style.display = (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'OTRO') ? '' : 'none';
         document.getElementById('panel-condensadora').style.display = (tipo === 'CONDENSADORA_RACK') ? '' : 'none';
+        document.getElementById('panel-corrientes-gen').style.display = (tipo === 'CONDENSADORA_RACK') ? 'none' : '';
     }
 
     function toggleCircuitoB(show) {
