@@ -64,7 +64,7 @@
         <div class="row g-2 small">
             <div class="col-6"><span class="text-muted">Cliente:</span> <strong>{{ orden.cliente_nombre }}</strong>
             </div>
-            <div class="col-6"><span class="text-muted">Fecha:</span> <strong>{{ orden.fecha }}</strong></div>
+            <div class="col-6"><span class="text-muted">Fecha:</span> <strong>{{ orden.fecha|date:"d/m/Y" }}</strong></div>
             <div class="col-6"><span class="text-muted">Dir:</span> {{ orden.dir_cliente|default:"—" }}</div>
             <div class="col-6"><span class="text-muted">Orden:</span> {{ orden.radicado }}</div>
             <div class="col-6"><span class="text-muted">Equipo:</span> {% if equipo %}{{ equipo.nombre }}{% else
