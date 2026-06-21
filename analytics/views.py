@@ -116,7 +116,7 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
 class ExportReportesView(SupervisorRequiredMixin, View):
     """Exporta el historial de órdenes en CSV."""
     def get(self, request):
-        ordenes = _get_ordenes_queryset(request)
+        ordenes = _get_ordenes_queryset(request)[:1000]
         buffer = StringIO()
         writer = csv.writer(buffer)
         writer.writerow(['Radicado', 'Tipo', 'Fecha', 'Técnico', 'Cliente', 'Equipo', 'Estado', 'Duración (min)'])

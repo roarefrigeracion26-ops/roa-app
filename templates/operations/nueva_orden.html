@@ -108,6 +108,9 @@ Nueva Orden —
         </div>
     </div>
 
+    {% if error_radicado %}
+    <div class="alert alert-danger">{{ error_radicado }}</div>
+    {% endif %}
     {% if form.errors %}
     <div class="alert alert-danger">{{ form.errors }}</div>
     {% endif %}

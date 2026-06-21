@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import IntegrityError
 from django.views import View
 from django.utils import timezone
 from django.http import HttpResponse
@@ -140,6 +141,13 @@ class NuevaOrdenClienteView(LoginRequiredMixin, View):
                     'cliente_bloqueo': cliente,
                     'error': str(e),
                 })
+            except IntegrityError:
+                return render(request, 'operations/nueva_orden.html', {
+                    'cliente': cliente,
+                    'es_mp_tienda': True,
+                    'form': form,
+                    'error_radicado': f'El radicado {radicado} ya existe. Usa otro número.',
+                })
         return render(request, 'operations/nueva_orden.html', {
             'cliente': cliente,
             'es_mp_tienda': True,
@@ -202,6 +210,13 @@ class NuevaOrdenView(LoginRequiredMixin, View):
                     'equipo': equipo,
                     'error': str(e),
                 })
+            except IntegrityError:
+                return render(request, 'operations/nueva_orden.html', {
+                    'equipo': equipo,
+                    'es_mp_tienda': False,
+                    'form': form,
+                    'error_radicado': f'El radicado {radicado} ya existe. Usa otro número.',
+                })
         return render(request, 'operations/nueva_orden.html', {
             'equipo': equipo,
             'es_mp_tienda': False,
@@ -222,6 +237,26 @@ def _build_formulario_context(orden, equipo_form=None):
     cliente = orden.cliente or (orden.equipo.cliente if orden.equipo else None)
     if cliente:
         from inventory.models import EquipoAA
+
+
+def parse_decimal(val):
+    """Convierte un valor a string decimal con punto. Retorna None si es vacío."""
+    if not val:
+        return None
+    if isinstance(val, str):
+        return val.replace(',', '.')
+    return str(val)
+
+
+def parse_int(val):
+    """Convierte un valor a entero >= 0. Retorna None si es inválido o negativo."""
+    if not val:
+        return None
+    try:
+        v = int(val)
+        return v if v >= 0 else None
+    except (ValueError, TypeError):
+        return None
         equipos_db = EquipoAA.objects.filter(cliente=cliente, activo=True)
         equipos_json = [{
             'id': eq.id,
@@ -319,12 +354,6 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
             ei.orden = orden
             ei.save()
 
-            def parse_decimal(val):
-                if not val: return None
-                if isinstance(val, str):
-                    return val.replace(',', '.')
-                return str(val)
-
             # Save UCA (Pressures) — solo ANTES
             circuit_labels = request.POST.getlist('circuito_label')
             for label in circuit_labels:
@@ -390,10 +419,6 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
         ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
         _guardar_actividades_orden(request, orden)
 
-        def parse_decimal(val):
-            if not val: return None
-            return val.replace(',', '.')
-
         # Update UCA — solo DESPUES
         circuit_labels = request.POST.getlist('circuito_label')
         for label in circuit_labels:
@@ -433,14 +458,6 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
         cr_temp_amb = parse_decimal(request.POST.get('cr_temp_ambiente_despues'))
         cr_total = request.POST.get('cr_total_abanicos')
         cr_operativos = request.POST.get('cr_abanicos_operativos')
-
-        def parse_int(val):
-            if not val: return None
-            try:
-                v = int(val)
-                return v if v >= 0 else None
-            except (ValueError, TypeError):
-                return None
 
         cr_total_i = parse_int(cr_total)
         cr_operativos_i = parse_int(cr_operativos)
@@ -525,6 +542,8 @@ class PDFOrdenView(LoginRequiredMixin, View):
 
     def get(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id)
+        if orden.tecnico != request.user and not request.user.is_supervisor:
+            return HttpResponse('No autorizado', status=403)
         equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
             'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
         ).all()
