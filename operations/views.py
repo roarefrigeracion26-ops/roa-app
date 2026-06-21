@@ -9,6 +9,7 @@ from django.template.loader import get_template
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from xhtml2pdf import pisa
+from django.contrib import messages
 import io
 import json
 
@@ -415,76 +416,80 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
     """POST: actualiza las mediciones DESPUES de un equipo ya intervenido."""
 
     def post(self, request, orden_id, equipo_id):
-        orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
-        ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
-        _guardar_actividades_orden(request, orden)
+        try:
+            orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user, estado=EstadoOrden.ABIERTO)
+            ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
+            _guardar_actividades_orden(request, orden)
 
-        # Update UCA — solo DESPUES
-        circuit_labels = request.POST.getlist('circuito_label')
-        for label in circuit_labels:
-            prefix = f'circ_{label}_'
-            baja_d = parse_decimal(request.POST.get(f'{prefix}baja_despues'))
-            alta_d = parse_decimal(request.POST.get(f'{prefix}alta_despues'))
+            # Update UCA — solo DESPUES
+            circuit_labels = request.POST.getlist('circuito_label')
+            for label in circuit_labels:
+                prefix = f'circ_{label}_'
+                baja_d = parse_decimal(request.POST.get(f'{prefix}baja_despues'))
+                alta_d = parse_decimal(request.POST.get(f'{prefix}alta_despues'))
 
-            if baja_d or alta_d:
-                MedicionUCA.objects.update_or_create(
+                if baja_d or alta_d:
+                    MedicionUCA.objects.update_or_create(
+                        equipo_intervenido=ei,
+                        circuito=label,
+                        defaults={
+                            'baja_p_despues': baja_d,
+                            'alta_p_despues': alta_d,
+                        }
+                    )
+
+            # Update Split — solo DESPUES
+            t_sum_d = parse_decimal(request.POST.get('temp_sumin_despues'))
+            t_ret_d = parse_decimal(request.POST.get('temp_retorno_despues'))
+
+            if t_sum_d or t_ret_d:
+                MedicionSplit.objects.update_or_create(
                     equipo_intervenido=ei,
-                    circuito=label,
                     defaults={
-                        'baja_p_despues': baja_d,
-                        'alta_p_despues': alta_d,
+                        'temp_sumin_despues': t_sum_d,
+                        'temp_retorno_despues': t_ret_d,
                     }
                 )
 
-        # Update Split — solo DESPUES
-        t_sum_d = parse_decimal(request.POST.get('temp_sumin_despues'))
-        t_ret_d = parse_decimal(request.POST.get('temp_retorno_despues'))
+            # Update Condensadora Rack — solo DESPUES
+            cr_corriente_l1 = parse_decimal(request.POST.get('cr_corriente_l1_despues'))
+            cr_corriente_l2 = parse_decimal(request.POST.get('cr_corriente_l2_despues'))
+            cr_corriente_l3 = parse_decimal(request.POST.get('cr_corriente_l3_despues'))
+            cr_presion = parse_decimal(request.POST.get('cr_presion_entrada_despues'))
+            cr_temp = parse_decimal(request.POST.get('cr_temp_salida_despues'))
+            cr_temp_amb = parse_decimal(request.POST.get('cr_temp_ambiente_despues'))
+            cr_total = request.POST.get('cr_total_abanicos')
+            cr_operativos = request.POST.get('cr_abanicos_operativos')
 
-        if t_sum_d or t_ret_d:
-            MedicionSplit.objects.update_or_create(
-                equipo_intervenido=ei,
-                defaults={
-                    'temp_sumin_despues': t_sum_d,
-                    'temp_retorno_despues': t_ret_d,
-                }
-            )
+            cr_total_i = parse_int(cr_total)
+            cr_operativos_i = parse_int(cr_operativos)
 
-        # Update Condensadora Rack — solo DESPUES
-        cr_corriente_l1 = parse_decimal(request.POST.get('cr_corriente_l1_despues'))
-        cr_corriente_l2 = parse_decimal(request.POST.get('cr_corriente_l2_despues'))
-        cr_corriente_l3 = parse_decimal(request.POST.get('cr_corriente_l3_despues'))
-        cr_presion = parse_decimal(request.POST.get('cr_presion_entrada_despues'))
-        cr_temp = parse_decimal(request.POST.get('cr_temp_salida_despues'))
-        cr_temp_amb = parse_decimal(request.POST.get('cr_temp_ambiente_despues'))
-        cr_total = request.POST.get('cr_total_abanicos')
-        cr_operativos = request.POST.get('cr_abanicos_operativos')
+            if any([cr_corriente_l1, cr_corriente_l2, cr_corriente_l3, cr_presion, cr_temp, cr_temp_amb,
+                    cr_total_i is not None, cr_operativos_i is not None]):
+                MedicionCondensadoraRack.objects.update_or_create(
+                    equipo_intervenido=ei,
+                    defaults={
+                        'corriente_l1_despues': cr_corriente_l1,
+                        'corriente_l2_despues': cr_corriente_l2,
+                        'corriente_l3_despues': cr_corriente_l3,
+                        'presion_entrada_despues': cr_presion,
+                        'temp_salida_despues': cr_temp,
+                        'temp_ambiente_despues': cr_temp_amb,
+                        'total_abanicos': cr_total_i,
+                        'abanicos_operativos': cr_operativos_i,
+                    }
+                )
 
-        cr_total_i = parse_int(cr_total)
-        cr_operativos_i = parse_int(cr_operativos)
+            envio_texto = request.POST.get('observacion', '').strip()
+            if envio_texto:
+                Observacion.objects.update_or_create(
+                    equipo_intervenido=ei,
+                    defaults={'texto': envio_texto}
+                )
 
-        if any([cr_corriente_l1, cr_corriente_l2, cr_corriente_l3, cr_presion, cr_temp, cr_temp_amb,
-                cr_total_i is not None, cr_operativos_i is not None]):
-            MedicionCondensadoraRack.objects.update_or_create(
-                equipo_intervenido=ei,
-                defaults={
-                    'corriente_l1_despues': cr_corriente_l1,
-                    'corriente_l2_despues': cr_corriente_l2,
-                    'corriente_l3_despues': cr_corriente_l3,
-                    'presion_entrada_despues': cr_presion,
-                    'temp_salida_despues': cr_temp,
-                    'temp_ambiente_despues': cr_temp_amb,
-                    'total_abanicos': cr_total_i,
-                    'abanicos_operativos': cr_operativos_i,
-                }
-            )
-
-        envio_texto = request.POST.get('observacion', '').strip()
-        if envio_texto:
-            Observacion.objects.update_or_create(
-                equipo_intervenido=ei,
-                defaults={'texto': envio_texto}
-            )
-
+            messages.success(request, 'Mediciones guardadas correctamente.')
+        except Exception:
+            messages.error(request, 'Error al guardar las mediciones. Revisa los datos e intenta de nuevo.')
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 
 
@@ -495,7 +500,6 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
     """POST: cierra la orden, genera y guarda el PDF."""
 
     def post(self, request, orden_id):
-        from django.contrib import messages
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
         if orden.estado == EstadoOrden.ABIERTO:
             ctx = _build_formulario_context(orden)
