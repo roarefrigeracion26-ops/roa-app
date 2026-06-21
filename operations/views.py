@@ -237,26 +237,6 @@ def _build_formulario_context(orden, equipo_form=None):
     cliente = orden.cliente or (orden.equipo.cliente if orden.equipo else None)
     if cliente:
         from inventory.models import EquipoAA
-
-
-def parse_decimal(val):
-    """Convierte un valor a string decimal con punto. Retorna None si es vacío."""
-    if not val:
-        return None
-    if isinstance(val, str):
-        return val.replace(',', '.')
-    return str(val)
-
-
-def parse_int(val):
-    """Convierte un valor a entero >= 0. Retorna None si es inválido o negativo."""
-    if not val:
-        return None
-    try:
-        v = int(val)
-        return v if v >= 0 else None
-    except (ValueError, TypeError):
-        return None
         equipos_db = EquipoAA.objects.filter(cliente=cliente, activo=True)
         equipos_json = [{
             'id': eq.id,
@@ -308,6 +288,26 @@ def parse_int(val):
         'equipos_db': equipos_db,
         'equipos_json': equipos_json,
     }
+
+
+def parse_decimal(val):
+    """Convierte un valor a string decimal con punto. Retorna None si es vacío."""
+    if not val:
+        return None
+    if isinstance(val, str):
+        return val.replace(',', '.')
+    return str(val)
+
+
+def parse_int(val):
+    """Convierte un valor a entero >= 0. Retorna None si es inválido o negativo."""
+    if not val:
+        return None
+    try:
+        v = int(val)
+        return v if v >= 0 else None
+    except (ValueError, TypeError):
+        return None
 
 
 class FormularioOrdenView(LoginRequiredMixin, View):
