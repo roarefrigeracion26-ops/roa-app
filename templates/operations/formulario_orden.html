@@ -507,6 +507,19 @@
                 if (btn) btn.disabled = true;
             });
         });
+
+        // Advertir al salir si hay cambios sin guardar
+        let dirty = false;
+        document.querySelectorAll('#form-agregar-equipo input, #form-agregar-equipo select, .form-completar-despues input, .form-completar-despues select, .form-completar-despues textarea').forEach(el => {
+            el.addEventListener('change', () => dirty = true);
+            el.addEventListener('input', () => dirty = true);
+        });
+        window.addEventListener('beforeunload', e => {
+            if (dirty) { e.preventDefault(); e.returnValue = ''; }
+        });
+        document.querySelectorAll('form').forEach(f => {
+            f.addEventListener('submit', () => dirty = false);
+        });
     });
 </script>
 {% endblock %}
