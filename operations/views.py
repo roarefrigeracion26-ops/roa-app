@@ -212,76 +212,77 @@ class NuevaOrdenView(LoginRequiredMixin, View):
 # ─────────────────────────────────────────────────────────
 # FormularioOrdenView: formulario completo multi-equipo
 # ─────────────────────────────────────────────────────────
+def _build_formulario_context(orden, equipo_form=None):
+    """Construye el contexto del formulario de intervención."""
+    equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
+        'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
+    ).all()
+    actividades = orden.actividades.all()
+    
+    cliente = orden.cliente or (orden.equipo.cliente if orden.equipo else None)
+    if cliente:
+        from inventory.models import EquipoAA
+        equipos_db = EquipoAA.objects.filter(cliente=cliente, activo=True)
+        equipos_json = [{
+            'id': eq.id,
+            'nombre_equipo': eq.nombre,
+            'ubicacion': eq.ubicacion,
+            'tipo_equipo': eq.tipo_equipo,
+            'marca': eq.marca,
+            'modelo': eq.modelo,
+            'capacidad': eq.capacidad,
+            'refrigerante': eq.refrigerante,
+            'voltaje': eq.voltaje,
+            'fases': eq.fases,
+            'tipo_correa': eq.tipo_correa,
+            'activo_fijo': eq.activo_fijo,
+        } for eq in equipos_db]
+    else:
+        equipos_db = []
+        equipos_json = []
+
+    equipos_pendientes = []
+    for ei in equipos_intervenidos:
+        pendiente = False
+        tipo = ei.tipo_equipo
+        if tipo == 'UCA':
+            for uca in ei.mediciones_uca.all():
+                if uca.baja_p_despues is None or uca.alta_p_despues is None:
+                    pendiente = True
+                    break
+        elif tipo in ('UMA', 'SPLIT', 'OTRO'):
+            ms = getattr(ei, 'medicion_split', None)
+            if ms and (ms.temp_sumin_despues is None or ms.temp_retorno_despues is None):
+                pendiente = True
+        elif tipo == 'CONDENSADORA_RACK':
+            mr = getattr(ei, 'medicion_condensadora_rack', None)
+            if mr and (mr.presion_entrada_despues is None or mr.temp_salida_despues is None):
+                pendiente = True
+        if pendiente:
+            equipos_pendientes.append(ei)
+
+    return {
+        'orden': orden,
+        'equipo': orden.equipo,
+        'cliente': orden.cliente,
+        'equipos_intervenidos': equipos_intervenidos,
+        'equipos_pendientes': equipos_pendientes,
+        'actividades': actividades,
+        'equipo_form': equipo_form or EquipoIntervenidoForm(),
+        'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
+        'equipos_db': equipos_db,
+        'equipos_json': equipos_json,
+    }
+
+
 class FormularioOrdenView(LoginRequiredMixin, View):
     """Formulario completo: actividades + equipos intervenidos + mediciones."""
-
-    def _get_context(self, orden):
-        equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
-            'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
-        ).all()
-        actividades = orden.actividades.all()
-        
-        # Equipos de la tienda para autocompletar
-        cliente = orden.cliente or (orden.equipo.cliente if orden.equipo else None)
-        if cliente:
-            from inventory.models import EquipoAA
-            equipos_db = EquipoAA.objects.filter(cliente=cliente, activo=True)
-            equipos_json = [{
-                'id': eq.id,
-                'nombre_equipo': eq.nombre,
-                'ubicacion': eq.ubicacion,
-                'tipo_equipo': eq.tipo_equipo,
-                'marca': eq.marca,
-                'modelo': eq.modelo,
-                'capacidad': eq.capacidad,
-                'refrigerante': eq.refrigerante,
-                'voltaje': eq.voltaje,
-                'fases': eq.fases,
-                'tipo_correa': eq.tipo_correa,
-                'activo_fijo': eq.activo_fijo,
-            } for eq in equipos_db]
-        else:
-            equipos_db = []
-            equipos_json = []
-
-        equipos_pendientes = []
-        for ei in equipos_intervenidos:
-            pendiente = False
-            tipo = ei.tipo_equipo
-            if tipo == 'UCA':
-                for uca in ei.mediciones_uca.all():
-                    if uca.baja_p_despues is None or uca.alta_p_despues is None:
-                        pendiente = True
-                        break
-            elif tipo in ('UMA', 'SPLIT', 'OTRO'):
-                ms = getattr(ei, 'medicion_split', None)
-                if ms and (ms.temp_sumin_despues is None or ms.temp_retorno_despues is None):
-                    pendiente = True
-            elif tipo == 'CONDENSADORA_RACK':
-                mr = getattr(ei, 'medicion_condensadora_rack', None)
-                if mr and (mr.presion_entrada_despues is None or mr.temp_salida_despues is None):
-                    pendiente = True
-            if pendiente:
-                equipos_pendientes.append(ei)
-
-        return {
-            'orden': orden,
-            'equipo': orden.equipo, # Puede ser nulo
-            'cliente': orden.cliente, # Para mostrar la tienda global
-            'equipos_intervenidos': equipos_intervenidos,
-            'equipos_pendientes': equipos_pendientes,
-            'actividades': actividades,
-            'equipo_form': EquipoIntervenidoForm(),
-            'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
-            'equipos_db': equipos_db,
-            'equipos_json': equipos_json,
-        }
 
     def get(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
         if orden.estado == EstadoOrden.CERRADO:
             return redirect('operations:orden_cerrada', orden_id=orden.pk)
-        return render(request, 'operations/formulario_orden.html', self._get_context(orden))
+        return render(request, 'operations/formulario_orden.html', _build_formulario_context(orden))
 
 
 
@@ -367,9 +368,7 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
 
             return redirect('operations:formulario_orden', orden_id=orden.pk)
 
-        context = self._get_context(orden)
-        context['equipo_form'] = equipo_form
-        return render(request, 'operations/formulario_orden.html', context)
+        return render(request, 'operations/formulario_orden.html', _build_formulario_context(orden, equipo_form=equipo_form))
 
 
 # ─────────────────────────────────────────────────────────

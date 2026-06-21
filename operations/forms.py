@@ -97,9 +97,9 @@ class NuevaOrdenClienteForm(NuevaOrdenForm):
 
 class EquipoIntervenidoForm(forms.ModelForm):
     """Datos completos de cada equipo intervenido en la orden."""
-    refrigerante = forms.ChoiceField(
-        choices=REFRIGERANTE_CHOICES, required=False, label='Refrigerante',
-        widget=forms.Select(attrs={'class': 'form-select'}),
+    refrigerante = forms.CharField(
+        required=False, label='Refrigerante',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: R410A'}),
     )
     tipo_equipo = forms.ChoiceField(
         choices=TIPO_EQUIPO_CHOICES, required=False, label='Tipo de equipo',
