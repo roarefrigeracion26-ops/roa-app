@@ -462,10 +462,11 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
             )
 
         envio_texto = request.POST.get('observacion', '').strip()
-        Observacion.objects.update_or_create(
-            equipo_intervenido=ei,
-            defaults={'texto': envio_texto}
-        )
+        if envio_texto:
+            Observacion.objects.update_or_create(
+                equipo_intervenido=ei,
+                defaults={'texto': envio_texto}
+            )
 
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 
@@ -477,8 +478,13 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
     """POST: cierra la orden, genera y guarda el PDF."""
 
     def post(self, request, orden_id):
+        from django.contrib import messages
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
         if orden.estado == EstadoOrden.ABIERTO:
+            ctx = _build_formulario_context(orden)
+            if ctx['equipos_pendientes']:
+                messages.warning(request, 'Completa las Mediciones Finales (Después) de todos los equipos antes de finalizar.')
+                return redirect('operations:formulario_orden', orden_id=orden.pk)
             _guardar_actividades_orden(request, orden)
             orden.marcar_cerrado()
         return redirect('operations:orden_cerrada', orden_id=orden.pk)

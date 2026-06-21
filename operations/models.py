@@ -62,7 +62,7 @@ class OrdenServicio(models.Model):
         ordering = ['-hora_inicio']
 
     def __str__(self):
-        return f'{self.radicado} — {self.equipo} — {self.tecnico}'
+        return f'{self.radicado} — {self.equipo or "Global"} — {self.tecnico}'
 
     def duracion_minutos(self):
         if not self.hora_fin:

@@ -2,7 +2,7 @@ import csv
 from datetime import datetime
 from io import StringIO
 
-from django.db.models import Avg, F, ExpressionWrapper, DurationField
+from django.db.models import Avg, F, ExpressionWrapper, DurationField, Q as models_Q
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.generic import TemplateView, View
@@ -38,7 +38,9 @@ def _get_ordenes_queryset(request):
     qs = OrdenServicio.objects.all().select_related('equipo', 'equipo__cliente', 'tecnico')
 
     if cliente_id:
-        qs = qs.filter(equipo__cliente_id=cliente_id)
+        qs = qs.filter(
+            models_Q(equipo__cliente_id=cliente_id) | models_Q(cliente_id=cliente_id)
+        )
     if equipo_id:
         qs = qs.filter(equipo_id=equipo_id)
     if tipo:
