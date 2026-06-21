@@ -87,7 +87,7 @@
     <form method="get" class="row g-2">
       <div class="col-md-3 col-6">
         <label class="form-label small text-muted mb-1">Cliente</label>
-        <select name="cliente" class="form-select form-select-sm" onchange="this.form.submit()">
+        <select name="cliente" class="form-select form-select-sm">
           <option value="">Todos los clientes</option>
           {% for c in clientes %}
           <option value="{{ c.pk }}" {% if cliente_seleccionado == c.pk %}selected{% endif %}>
@@ -98,7 +98,7 @@
       </div>
       <div class="col-md-3 col-6">
         <label class="form-label small text-muted mb-1">Equipo</label>
-        <select name="equipo" class="form-select form-select-sm" onchange="this.form.submit()">
+        <select name="equipo" class="form-select form-select-sm">
           <option value="">Todos los equipos</option>
           {% for e in equipos %}
           <option value="{{ e.pk }}" {% if equipo_seleccionado == e.pk %}selected{% endif %}>
