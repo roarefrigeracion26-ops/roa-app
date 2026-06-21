@@ -112,9 +112,9 @@ class EquipoIntervenidoForm(forms.ModelForm):
             mutable = self.data.copy()
             for name in list(mutable.keys()):
                 if name in self.fields and isinstance(self.fields[name], forms.DecimalField):
-                    val = mutable[name]
-                    if isinstance(val, str):
-                        mutable[name] = val.replace(',', '.')
+                    vals = mutable.getlist(name) if hasattr(mutable, 'getlist') else [mutable[name]]
+                    if len(vals) == 1 and isinstance(vals[0], str):
+                        mutable[name] = vals[0].replace(',', '.')
             self.data = mutable
 
     class Meta:

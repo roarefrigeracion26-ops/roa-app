@@ -99,7 +99,7 @@ class NuevaOrdenClienteView(LoginRequiredMixin, View):
         if ultima_orden:
             import re
             m = re.search(r'\d+', ultima_orden.radicado)
-            if m:
+            if m and m.group():
                 sug_numero = str(int(m.group()) + 1)
 
         form = NuevaOrdenClienteForm(initial={
@@ -160,7 +160,7 @@ class NuevaOrdenView(LoginRequiredMixin, View):
         if ultima_orden:
             import re
             m = re.search(r'\d+', ultima_orden.radicado)
-            if m:
+            if m and m.group():
                 sug_numero = str(int(m.group()) + 1)
 
         form = NuevaOrdenForm(initial={
@@ -321,7 +321,9 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
 
             def parse_decimal(val):
                 if not val: return None
-                return val.replace(',', '.')
+                if isinstance(val, str):
+                    return val.replace(',', '.')
+                return str(val)
 
             # Save UCA (Pressures) — solo ANTES
             circuit_labels = request.POST.getlist('circuito_label')
@@ -331,11 +333,13 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
                 alta_a = parse_decimal(request.POST.get(f'{prefix}alta_antes'))
                 
                 if baja_a or alta_a:
-                    MedicionUCA.objects.create(
+                    MedicionUCA.objects.update_or_create(
                         equipo_intervenido=ei,
                         circuito=label,
-                        baja_p_antes=baja_a,
-                        alta_p_antes=alta_a,
+                        defaults={
+                            'baja_p_antes': baja_a,
+                            'alta_p_antes': alta_a,
+                        }
                     )
 
             # Save Split (Temperatures) — solo ANTES
@@ -343,10 +347,12 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
             t_ret_a = parse_decimal(request.POST.get('temp_retorno_antes'))
             
             if t_sum_a or t_ret_a:
-                MedicionSplit.objects.create(
+                MedicionSplit.objects.update_or_create(
                     equipo_intervenido=ei,
-                    temp_sumin_antes=t_sum_a,
-                    temp_retorno_antes=t_ret_a,
+                    defaults={
+                        'temp_sumin_antes': t_sum_a,
+                        'temp_retorno_antes': t_ret_a,
+                    }
                 )
 
             # Save Condensadora Rack — solo ANTES
@@ -357,13 +363,15 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
             cr_temp = parse_decimal(request.POST.get('cr_temp_salida_antes'))
 
             if any([cr_corriente_l1, cr_corriente_l2, cr_corriente_l3, cr_presion, cr_temp]):
-                MedicionCondensadoraRack.objects.create(
+                MedicionCondensadoraRack.objects.update_or_create(
                     equipo_intervenido=ei,
-                    corriente_l1_antes=cr_corriente_l1,
-                    corriente_l2_antes=cr_corriente_l2,
-                    corriente_l3_antes=cr_corriente_l3,
-                    presion_entrada_antes=cr_presion,
-                    temp_salida_antes=cr_temp,
+                    defaults={
+                        'corriente_l1_antes': cr_corriente_l1,
+                        'corriente_l2_antes': cr_corriente_l2,
+                        'corriente_l3_antes': cr_corriente_l3,
+                        'presion_entrada_antes': cr_presion,
+                        'temp_salida_antes': cr_temp,
+                    }
                 )
 
             return redirect('operations:formulario_orden', orden_id=orden.pk)
@@ -429,7 +437,8 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
         def parse_int(val):
             if not val: return None
             try:
-                return int(val)
+                v = int(val)
+                return v if v >= 0 else None
             except (ValueError, TypeError):
                 return None
 
