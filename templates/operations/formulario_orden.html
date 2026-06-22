@@ -143,6 +143,8 @@
                                 <option value="UCA">UCA</option>
                                 <option value="UMA">UMA</option>
                                 <option value="SPLIT">Split</option>
+                                <option value="CASSETTE">Cassette</option>
+                                <option value="PISO_TECHO">Piso Techo</option>
                                 <option value="PAQUETE">Paquete</option>
                                 <option value="CONDENSADORA_RACK">Condensadora Rack</option>
                                 <option value="OTRO">Otro</option>
@@ -420,7 +422,7 @@
     function updateTipoEq() {
         const tipo = document.getElementById('sel-tipo-eq').value;
         document.getElementById('panel-uca').style.display = (tipo === 'UCA' || tipo === 'PAQUETE') ? '' : 'none';
-        document.getElementById('panel-split').style.display = (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'OTRO' || tipo === 'PAQUETE') ? '' : 'none';
+        document.getElementById('panel-split').style.display = (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'CASSETTE' || tipo === 'PISO_TECHO' || tipo === 'OTRO' || tipo === 'PAQUETE') ? '' : 'none';
         document.getElementById('panel-condensadora').style.display = (tipo === 'CONDENSADORA_RACK') ? '' : 'none';
         document.getElementById('panel-corrientes-gen').style.display = (tipo === 'CONDENSADORA_RACK') ? 'none' : '';
     }

@@ -266,7 +266,7 @@ def _build_formulario_context(orden, equipo_form=None):
                 if uca.baja_p_despues is None or uca.alta_p_despues is None:
                     pendiente = True
                     break
-        elif tipo in ('UMA', 'SPLIT', 'OTRO'):
+        elif tipo in ('UMA', 'SPLIT', 'CASSETTE', 'PISO_TECHO', 'OTRO'):
             ms = getattr(ei, 'medicion_split', None)
             if ms and (ms.temp_sumin_despues is None or ms.temp_retorno_despues is None):
                 pendiente = True
