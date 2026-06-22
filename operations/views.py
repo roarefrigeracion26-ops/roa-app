@@ -270,6 +270,14 @@ def _build_formulario_context(orden, equipo_form=None):
             ms = getattr(ei, 'medicion_split', None)
             if ms and (ms.temp_sumin_despues is None or ms.temp_retorno_despues is None):
                 pendiente = True
+        elif tipo == 'PAQUETE':
+            for uca in ei.mediciones_uca.all():
+                if uca.baja_p_despues is None or uca.alta_p_despues is None:
+                    pendiente = True
+                    break
+            ms = getattr(ei, 'medicion_split', None)
+            if ms and (ms.temp_sumin_despues is None or ms.temp_retorno_despues is None):
+                pendiente = True
         elif tipo == 'CONDENSADORA_RACK':
             mr = getattr(ei, 'medicion_condensadora_rack', None)
             if mr and (mr.presion_entrada_despues is None or mr.temp_salida_despues is None):

@@ -419,8 +419,8 @@
     }
     function updateTipoEq() {
         const tipo = document.getElementById('sel-tipo-eq').value;
-        document.getElementById('panel-uca').style.display = (tipo === 'UCA') ? '' : 'none';
-        document.getElementById('panel-split').style.display = (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'OTRO') ? '' : 'none';
+        document.getElementById('panel-uca').style.display = (tipo === 'UCA' || tipo === 'PAQUETE') ? '' : 'none';
+        document.getElementById('panel-split').style.display = (tipo === 'UMA' || tipo === 'SPLIT' || tipo === 'OTRO' || tipo === 'PAQUETE') ? '' : 'none';
         document.getElementById('panel-condensadora').style.display = (tipo === 'CONDENSADORA_RACK') ? '' : 'none';
         document.getElementById('panel-corrientes-gen').style.display = (tipo === 'CONDENSADORA_RACK') ? 'none' : '';
     }
