@@ -63,6 +63,34 @@ def iniciar_orden(tecnico, tipo, radicado, cliente_nombre, dir_cliente,
     return orden
 
 
+def tecnico_correctivos_abiertos(tecnico):
+    """Devuelve todas las órdenes MC abiertas del técnico."""
+    return OrdenServicio.objects.filter(
+        tecnico=tecnico,
+        tipo=TipoMantenimiento.CORRECTIVO,
+        estado=EstadoOrden.ABIERTO,
+    ).select_related('cliente', 'equipo', 'equipo__cliente').order_by('-hora_inicio')
+
+
+def obtener_correctivo_abierto(tecnico, equipo):
+    """Devuelve la orden MC abierta para un equipo específico o None."""
+    return OrdenServicio.objects.filter(
+        tecnico=tecnico,
+        tipo=TipoMantenimiento.CORRECTIVO,
+        estado=EstadoOrden.ABIERTO,
+        equipo=equipo,
+    ).select_related('cliente', 'equipo', 'equipo__cliente').first()
+
+
+def tecnico_puede_crear_mc(tecnico, max_mcs=3):
+    """True si el técnico tiene menos de max_mcs MCs abiertos."""
+    return OrdenServicio.objects.filter(
+        tecnico=tecnico,
+        tipo=TipoMantenimiento.CORRECTIVO,
+        estado=EstadoOrden.ABIERTO,
+    ).count() < max_mcs
+
+
 def duracion_minutos(hora_inicio, hora_fin):
     if not hora_fin:
         return None

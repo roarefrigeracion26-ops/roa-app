@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Límite de Correctivos Alcanzado{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+    <div class="mb-4" style="font-size:4rem;">⛔</div>
+    <h2 class="fw-bold text-primary">Límite de Correctivos Alcanzado</h2>
+    <p class="text-muted">Has llegado al límite de 3 Correctivos MC abiertos. Debes finalizar o cancelar uno antes de iniciar otro.</p>
+
+    <div class="mt-4 d-flex flex-column gap-3 align-items-center">
+        {% for mc in correctivos_abiertos %}
+        <div class="card w-100" style="max-width:420px;">
+            <div class="card-body text-start">
+                <div class="radicado-badge mb-2">{{ mc.radicado }}</div>
+                <div class="fw-semibold">{{ mc.equipo.nombre|default:"—" }}</div>
+                <div class="text-muted small">{{ mc.equipo.cliente.nombre|default:mc.cliente.nombre }}</div>
+                <div class="text-muted small">Iniciado: {{ mc.hora_inicio|date:"d/m/Y H:i" }}</div>
+                <div class="mt-2 d-flex gap-2">
+                    <a href="{% url 'operations:formulario_orden' mc.pk %}" class="btn btn-roa-primary btn-sm">
+                        <i class="bi bi-arrow-right-circle me-1"></i>Continuar
+                    </a>
+                    <form method="POST" action="{% url 'operations:cancelar_orden' mc.pk %}" style="display:inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-x-circle me-1"></i>Cancelar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'inventory:clientes' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-house-door me-1"></i>Volver al Inicio
+        </a>
+    </div>
+</div>
+{% endblock %}

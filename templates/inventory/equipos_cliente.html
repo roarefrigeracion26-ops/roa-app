@@ -33,23 +33,43 @@
 <p class="section-title"><i class="bi bi-wind me-1"></i>Equipos para Mantenimiento Correctivo (MC)</p>
 
 {% for equipo in equipos %}
-<a href="{% url 'operations:ficha_equipo' equipo.pk %}" class="equipo-card card mb-2 p-3">
-    <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle d-flex align-items-center justify-content-center"
-            style="width:42px;height:42px;background:var(--roa-blue-light);flex-shrink:0;">
-            <i class="bi bi-snow2 text-primary fs-5"></i>
-        </div>
-        <div class="flex-grow-1">
-            <div class="fw-semibold">{{ equipo.nombre }}</div>
-            <div class="text-muted small">
-                <span class="badge bg-primary-subtle text-primary me-1">{{ equipo.tipo_equipo }}</span>
-                {% if equipo.marca %}{{ equipo.marca }}{% endif %}
-                {% if equipo.ubicacion %} · {{ equipo.ubicacion }}{% endif %}
+<div class="equipo-card card mb-2 p-3">
+    <a href="{% url 'operations:ficha_equipo' equipo.pk %}" class="text-decoration-none text-reset">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                style="width:42px;height:42px;background:var(--roa-blue-light);flex-shrink:0;">
+                <i class="bi bi-snow2 text-primary fs-5"></i>
             </div>
+            <div class="flex-grow-1">
+                <div class="fw-semibold">{{ equipo.nombre }}</div>
+                <div class="text-muted small">
+                    <span class="badge bg-primary-subtle text-primary me-1">{{ equipo.tipo_equipo }}</span>
+                    {% if equipo.marca %}{{ equipo.marca }}{% endif %}
+                    {% if equipo.ubicacion %} · {{ equipo.ubicacion }}{% endif %}
+                </div>
+            </div>
+            <i class="bi bi-chevron-right text-muted"></i>
         </div>
-        <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% if equipo.id in correctivos_ids %}
+    <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark"><i class="bi bi-tools me-1"></i>MC Abierto</span>
+        {% for mc in correctivos_abiertos %}
+            {% if mc.equipo_id == equipo.id %}
+            <a href="{% url 'operations:formulario_orden' mc.pk %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-arrow-right-circle me-1"></i>Continuar
+            </a>
+            <form method="POST" action="{% url 'operations:cancelar_orden' mc.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                </button>
+            </form>
+            {% endif %}
+        {% endfor %}
     </div>
-</a>
+    {% endif %}
+</div>
 {% empty %}
 <div class="text-center text-muted py-5">
     <i class="bi bi-wind fs-1 d-block mb-2"></i>

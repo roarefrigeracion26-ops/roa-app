@@ -27,6 +27,9 @@ from .models import (
 from .services import (
     tecnico_tiene_preventivo_abierto,
     obtener_preventivo_abierto,
+    tecnico_correctivos_abiertos,
+    obtener_correctivo_abierto,
+    tecnico_puede_crear_mc,
     iniciar_orden,
     duracion_minutos,
     es_duracion_sospechosa,
@@ -71,9 +74,11 @@ class FichaEquipoView(LoginRequiredMixin, View):
     def get(self, request, equipo_id):
         equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
         preventivo_abierto = obtener_preventivo_abierto(request.user)
+        correctivo_abierto = obtener_correctivo_abierto(request.user, equipo)
         return render(request, 'operations/ficha_equipo.html', {
             'equipo': equipo,
             'preventivo_abierto': preventivo_abierto,
+            'correctivo_abierto': correctivo_abierto,
         })
 
 
@@ -163,6 +168,19 @@ class NuevaOrdenView(LoginRequiredMixin, View):
     """Formulario para elegir tipo, ingresar radicado y datos del encabezado (Histórico por Equipo)."""
     def get(self, request, equipo_id):
         equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
+
+        # Si ya hay un MC abierto para este equipo, redirigir al formulario
+        correctivo_existente = obtener_correctivo_abierto(request.user, equipo)
+        if correctivo_existente:
+            return redirect('operations:formulario_orden', orden_id=correctivo_existente.pk)
+
+        # Si ya tiene 3 MCs abiertos, bloquear
+        correctivos_abiertos = tecnico_correctivos_abiertos(request.user)
+        if correctivos_abiertos.count() >= 3:
+            return render(request, 'operations/bloqueo_mc.html', {
+                'correctivos_abiertos': correctivos_abiertos,
+            })
+
         # Sugerir el último radicado + 1 para MC
         ultima_orden = OrdenServicio.objects.filter(tipo='MC').order_by('-radicado').first()
         sug_numero = ""
@@ -188,6 +206,19 @@ class NuevaOrdenView(LoginRequiredMixin, View):
 
     def post(self, request, equipo_id):
         equipo = get_object_or_404(EquipoAA, pk=equipo_id, activo=True)
+
+        # Si ya hay un MC abierto para este equipo, redirigir
+        correctivo_existente = obtener_correctivo_abierto(request.user, equipo)
+        if correctivo_existente:
+            return redirect('operations:formulario_orden', orden_id=correctivo_existente.pk)
+
+        # Si ya tiene 3 MCs abiertos, bloquear
+        correctivos_abiertos = tecnico_correctivos_abiertos(request.user)
+        if correctivos_abiertos.count() >= 3:
+            return render(request, 'operations/bloqueo_mc.html', {
+                'correctivos_abiertos': correctivos_abiertos,
+            })
+
         form = NuevaOrdenForm(request.POST)
         if form.is_valid():
             try:
@@ -523,11 +554,11 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
 # CancelarOrdenView: elimina un preventivo abierto para empezar de nuevo
 # ─────────────────────────────────────────────────────────
 class CancelarOrdenView(LoginRequiredMixin, View):
-    """POST: elimina el preventivo MP abierto si se seleccionó la tienda equivocada."""
+    """POST: elimina una orden abierta (MP o MC) si no se finalizó."""
 
     def post(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
-        if orden.tipo == TipoMantenimiento.PREVENTIVO and orden.estado == EstadoOrden.ABIERTO:
+        if orden.estado == EstadoOrden.ABIERTO:
             orden.delete()
         return redirect('inventory:clientes')
 

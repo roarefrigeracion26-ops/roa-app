@@ -27,6 +27,32 @@
 </div>
 {% endif %}
 
+{% if correctivos_abiertos %}
+<div class="alert alert-warning border-start border-4 border-warning mb-4">
+    <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-tools text-warning fs-5 mt-1"></i>
+        <div class="flex-grow-1">
+            <strong>Tienes {{ correctivos_abiertos|length }} Correctivo{{ correctivos_abiertos|length|pluralize:"s" }} MC abiertos:</strong>
+            {% for mc in correctivos_abiertos %}
+            <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+                <span class="radicado-badge">{{ mc.radicado }}</span>
+                <span class="text-dark">— {{ mc.equipo.nombre|default:"—" }} ({{ mc.cliente.nombre|default:mc.equipo.cliente.nombre }})</span>
+                <a href="{% url 'operations:formulario_orden' mc.pk %}" class="btn btn-sm btn-roa-primary">
+                    <i class="bi bi-arrow-right-circle me-1"></i>Continuar
+                </a>
+                <form method="POST" action="{% url 'operations:cancelar_orden' mc.pk %}" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="mb-3">
     <input type="search" id="buscarCliente" class="form-control" placeholder="🔍 Buscar cliente...">
 </div>
