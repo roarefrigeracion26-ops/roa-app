@@ -444,6 +444,25 @@ class AgregarEquipoAntesView(LoginRequiredMixin, View):
                     }
                 )
 
+            # Si el equipo no estaba operativo, crear mediciones vacías
+            # para que aparezcan como pendientes en Después
+            if ei.equipo_operativo == 'NO':
+                tipo_eq = ei.tipo_equipo
+                if tipo_eq in ('UCA', 'PAQUETE'):
+                    MedicionUCA.objects.get_or_create(
+                        equipo_intervenido=ei, circuito='A',
+                        defaults={'baja_p_antes': None, 'alta_p_antes': None}
+                    )
+                elif tipo_eq in ('UMA', 'SPLIT', 'CASSETTE', 'PISO_TECHO', 'OTRO'):
+                    MedicionSplit.objects.get_or_create(
+                        equipo_intervenido=ei,
+                        defaults={'temp_sumin_antes': None, 'temp_retorno_antes': None}
+                    )
+                elif tipo_eq == 'CONDENSADORA_RACK':
+                    MedicionCondensadoraRack.objects.get_or_create(
+                        equipo_intervenido=ei,
+                    )
+
             return redirect('operations:formulario_orden', orden_id=orden.pk)
 
         return render(request, 'operations/formulario_orden.html', _build_formulario_context(orden, equipo_form=equipo_form))
