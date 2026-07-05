@@ -247,6 +247,14 @@
             <td class="label-cell">Activo Fijo</td>
             <td colspan="3">{{ ei.activo_fijo|default:"—" }}</td>
         </tr>
+        <tr>
+            <td class="label-cell">Estado inicial</td>
+            <td colspan="3">
+                {% if ei.equipo_operativo == 'SI' %}Operativo
+                {% elif ei.equipo_operativo == 'NO' %}No Operativo
+                {% else %}—{% endif %}
+            </td>
+        </tr>
     </table>
 
     {% if ei.mediciones_uca.exists %}

@@ -107,6 +107,11 @@ class EquipoIntervenido(models.Model):
     fases = models.CharField(max_length=50, blank=True, help_text='Ej: 3 PH 60HZ')
     tipo_correa = models.CharField(max_length=50, blank=True, help_text='Ej: BX38')
     activo_fijo = models.CharField(max_length=50, blank=True)
+    equipo_operativo = models.CharField(
+        max_length=2, blank=True,
+        choices=[('SI', 'Operativo'), ('NO', 'No Operativo')],
+        verbose_name='Estado al iniciar intervención',
+    )
 
     class Meta:
         verbose_name = 'Equipo Intervenido'

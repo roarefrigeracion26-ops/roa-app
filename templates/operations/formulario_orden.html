@@ -182,6 +182,23 @@
                         <i class="bi bi-thermometer-half me-1"></i>Paso 1 — Mediciones Iniciales (Antes)
                     </p>
 
+                    <div class="mb-3 p-3 bg-light rounded border">
+                        <label class="form-label fw-bold">Estado al iniciar intervención</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="equipo_operativo" value="SI" required>
+                                <label class="form-check-label fw-semibold text-success">Operativo</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="equipo_operativo" value="NO" required>
+                                <label class="form-check-label fw-semibold text-danger">No Operativo</label>
+                            </div>
+                        </div>
+                        <div class="form-text text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>Si marca "No Operativo", las mediciones Antes quedarán vacías porque el equipo no funcionaba al llegar.
+                        </div>
+                    </div>
+
                     <p class="section-title mt-3">Presiones (PSI) — Antes</p>
 
                     <div id="panel-uca" class="seccion-medicion p-3">

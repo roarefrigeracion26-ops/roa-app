@@ -124,7 +124,7 @@ class EquipoIntervenidoForm(forms.ModelForm):
             'capacidad', 'refrigerante', 'voltaje',
             'corriente_l1', 'corriente_l2', 'corriente_l3',
             'amperaje_l1', 'amperaje_l2', 'amperaje_l3',
-            'fases', 'tipo_correa', 'activo_fijo',
+            'fases', 'tipo_correa', 'activo_fijo', 'equipo_operativo',
         ]
         widgets = {
             'nombre_equipo': _text_input('Ej: UCA 1'),
@@ -142,6 +142,7 @@ class EquipoIntervenidoForm(forms.ModelForm):
             'fases': _text_input('Ej: 3 PH 60HZ'),
             'tipo_correa': _text_input('Ej: BX38'),
             'activo_fijo': _text_input('Ej: 1433977'),
+            'equipo_operativo': forms.RadioSelect(attrs={'class': 'form-check-input'}),
         }
         labels = {
             'nombre_equipo': 'Nombre del equipo',
