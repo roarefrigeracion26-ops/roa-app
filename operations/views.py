@@ -12,6 +12,7 @@ from xhtml2pdf import pisa
 from django.contrib import messages
 import io
 import json
+from datetime import datetime
 
 SPANISH_MONTHS = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
@@ -545,6 +546,21 @@ class FinalizarOrdenView(LoginRequiredMixin, View):
             if ctx['equipos_pendientes']:
                 messages.warning(request, 'Completa las Mediciones Finales (Después) de todos los equipos antes de finalizar.')
                 return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+            fecha_fin = request.POST.get('fecha_fin')
+            if not fecha_fin:
+                messages.error(request, 'Debes indicar la fecha de finalización.')
+                return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+            try:
+                fecha_parsed = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                ahora_local = timezone.localtime(timezone.now())
+                dt_combinado = datetime.combine(fecha_parsed, ahora_local.time())
+                orden.hora_fin = timezone.make_aware(dt_combinado, timezone.get_default_timezone())
+            except (ValueError, TypeError):
+                messages.error(request, 'Formato de fecha inválido.')
+                return redirect('operations:formulario_orden', orden_id=orden.pk)
+
             _guardar_actividades_orden(request, orden)
             orden.marcar_cerrado()
         return redirect('operations:orden_cerrada', orden_id=orden.pk)
