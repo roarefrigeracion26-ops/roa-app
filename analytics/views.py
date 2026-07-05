@@ -38,7 +38,7 @@ def _get_ordenes_queryset(request):
 
     qs = OrdenServicio.objects.all().select_related('equipo', 'equipo__cliente', 'tecnico').only(
         'radicado', 'tipo', 'fecha', 'hora_inicio', 'hora_fin', 'cliente_nombre',
-        'estado', 'equipo__nombre', 'equipo__cliente_id',
+        'estado', 'equipo__nombre',
         'tecnico__nombre_completo', 'tecnico__username',
     )
 
