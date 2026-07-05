@@ -3,7 +3,7 @@ from datetime import datetime
 from io import StringIO
 
 from django.core.paginator import Paginator
-from django.db.models import Avg, F, ExpressionWrapper, Count, Q as models_Q
+from django.db.models import Avg, F, ExpressionWrapper, Count, DurationField, Q as models_Q
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.generic import TemplateView, View
