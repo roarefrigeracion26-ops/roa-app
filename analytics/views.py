@@ -2,7 +2,8 @@ import csv
 from datetime import datetime
 from io import StringIO
 
-from django.db.models import Avg, F, ExpressionWrapper, DurationField, Q as models_Q
+from django.core.paginator import Paginator
+from django.db.models import Avg, F, ExpressionWrapper, Count, Q as models_Q
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.generic import TemplateView, View
@@ -35,7 +36,11 @@ def _get_ordenes_queryset(request):
     if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
         fecha_inicio, fecha_fin = fecha_fin, fecha_inicio
 
-    qs = OrdenServicio.objects.all().select_related('equipo', 'equipo__cliente', 'tecnico')
+    qs = OrdenServicio.objects.all().select_related('equipo', 'equipo__cliente', 'tecnico').only(
+        'radicado', 'tipo', 'fecha', 'hora_inicio', 'hora_fin', 'cliente_nombre',
+        'estado', 'equipo__nombre', 'equipo__cliente_id',
+        'tecnico__nombre_completo', 'tecnico__username',
+    )
 
     if cliente_id:
         qs = qs.filter(
@@ -67,8 +72,20 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
         fecha_fin_str = request.GET.get('fecha_fin', '').strip()
 
         ordenes = _get_ordenes_queryset(request)
-        context['historial'] = ordenes[:100]
-        context['total_ordenes'] = ordenes.count()
+
+        # Estadísticas agregadas (1 query con Count)
+        stats = ordenes.aggregate(
+            total=Count('pk'),
+            abiertas=Count('pk', filter=models_Q(estado=EstadoOrden.ABIERTO)),
+            cerradas=Count('pk', filter=models_Q(estado=EstadoOrden.CERRADO)),
+            mp=Count('pk', filter=models_Q(tipo=TipoMantenimiento.PREVENTIVO)),
+            mc=Count('pk', filter=models_Q(tipo=TipoMantenimiento.CORRECTIVO)),
+        )
+        context['total_ordenes'] = stats['total']
+        context['abiertas_count'] = stats['abiertas']
+        context['cerradas_count'] = stats['cerradas']
+        context['mp_count'] = stats['mp']
+        context['mc_count'] = stats['mc']
 
         # MTTR solo sobre correctivos cerrados
         correctivos_cerrados = OrdenServicio.objects.filter(
@@ -87,6 +104,18 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
             context['mttr_minutos'] = round(td.total_seconds() / 60, 1) if td else None
         else:
             context['mttr_minutos'] = None
+
+        # Paginación
+        paginator = Paginator(ordenes, 50)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        context['page_obj'] = page_obj
+        context['historial'] = page_obj.object_list
+
+        # Preservar filtros en paginación
+        params = request.GET.copy()
+        params.pop('page', None)
+        context['params'] = params.urlencode()
 
         # Selectores
         clientes = list(Cliente.objects.filter(activo=True).order_by('nombre'))

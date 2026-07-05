@@ -78,6 +78,62 @@
   </div>
 </div>
 
+<!-- Segunda fila de KPIs: Abiertas/Cerradas + MP/MC -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="card kpi-card shadow-sm h-100" style="border-left-color: #ffc107;">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0 me-3">
+          <i class="bi bi-play-circle text-warning kpi-icon"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-warning-emphasis">{{ abiertas_count|default:"0" }}</div>
+          <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Abiertas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi-card shadow-sm h-100" style="border-left-color: #198754;">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0 me-3">
+          <i class="bi bi-check-circle text-success kpi-icon"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-success">{{ cerradas_count|default:"0" }}</div>
+          <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Cerradas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi-card shadow-sm h-100" style="border-left-color: var(--roa-blue);">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0 me-3">
+          <i class="bi bi-tools text-primary kpi-icon"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0 text-primary">{{ mp_count|default:"0" }}</div>
+          <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Preventivos (MP)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card kpi-card shadow-sm h-100" style="border-left-color: var(--roa-gold);">
+      <div class="card-body d-flex align-items-center">
+        <div class="flex-shrink-0 me-3">
+          <i class="bi bi-wrench-adjustable-circle kpi-icon" style="color: var(--roa-gold);"></i>
+        </div>
+        <div>
+          <div class="h3 fw-bold mb-0" style="color: var(--roa-gold);">{{ mc_count|default:"0" }}</div>
+          <div class="small text-muted text-uppercase fw-semibold" style="font-size: 0.7rem;">Correctivos (MC)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Filtros -->
 <div class="card filter-card mb-4 shadow-sm">
   <div class="card-header bg-white py-2 fw-bold text-primary d-flex align-items-center">
@@ -201,4 +257,40 @@
     </table>
   </div>
 </div>
+
+<!-- Paginación -->
+{% if page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Paginación">
+  <ul class="pagination justify-content-center my-3">
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?{{ params }}&page=1" title="Primera">&laquo;</a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?{{ params }}&page={{ page_obj.previous_page_number }}" title="Anterior">‹</a>
+    </li>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+      {% if num == page_obj.number %}
+      <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+      <li class="page-item"><a class="page-link" href="?{{ params }}&page={{ num }}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?{{ params }}&page={{ page_obj.next_page_number }}" title="Siguiente">›</a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?{{ params }}&page={{ page_obj.paginator.num_pages }}" title="Última">&raquo;</a>
+    </li>
+    {% endif %}
+  </ul>
+  <p class="text-center text-muted small mb-0">
+    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} órdenes)
+  </p>
+</nav>
+{% endif %}
 {% endblock %}
