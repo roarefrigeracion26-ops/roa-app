@@ -42,8 +42,9 @@
                 </a>
                 <form method="POST" action="{% url 'operations:cancelar_orden' mc.pk %}" style="display:inline">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                    <button type="submit" class="btn btn-outline-danger rounded-circle p-2 lh-1" title="Cancelar" style="width:36px;height:36px;">
+                        <i class="bi bi-x-lg"></i>
+                        <span class="visually-hidden">Cancelar</span>
                     </button>
                 </form>
             </div>
