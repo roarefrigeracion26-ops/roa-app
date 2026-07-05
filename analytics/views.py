@@ -36,7 +36,7 @@ def _get_ordenes_queryset(request):
     if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
         fecha_inicio, fecha_fin = fecha_fin, fecha_inicio
 
-    qs = OrdenServicio.objects.all().select_related('equipo', 'equipo__cliente', 'tecnico').only(
+    qs = OrdenServicio.objects.all().select_related('equipo', 'tecnico').only(
         'radicado', 'tipo', 'fecha', 'hora_inicio', 'hora_fin', 'cliente_nombre',
         'estado', 'equipo__nombre',
         'tecnico__nombre_completo', 'tecnico__username',
