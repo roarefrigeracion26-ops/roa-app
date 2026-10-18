@@ -153,3 +153,15 @@ class FotosViewsTests(TestCase):
         })
         self.assertIn('REGISTRO FOTOGRÁFICO', html)
         self.assertIn(ei.fotos_antes[0].imagen.url, html)
+
+    def test_genera_pdf_con_fotos(self):
+        from django.test import RequestFactory
+        from operations.views import PDFOrdenView
+
+        self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
+        request = RequestFactory().get('/')
+        request.user = self.tecnico
+        respuesta = PDFOrdenView().get(request, orden_id=self.orden.pk)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta['Content-Type'], 'application/pdf')
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
