@@ -368,7 +368,9 @@
         <div style="font-weight:bold;font-size:8pt;color:#B8860B;">ANTES</div>
         <div>
             {% for foto in ei.fotos_antes %}
-            <img src="{{ foto.imagen.url }}" style="width:120px;border:1px solid #333;margin:2px;">
+            <div style="text-align:center;page-break-inside:avoid;">
+                <img src="{{ foto.imagen.url }}" style="width:150mm;border:1px solid #333;">
+            </div>
             {% empty %}
             <span style="font-size:8pt;color:#555;">Sin fotos.</span>
             {% endfor %}
@@ -378,7 +380,9 @@
         <div style="font-weight:bold;font-size:8pt;color:#B8860B;">DESPUÉS</div>
         <div>
             {% for foto in ei.fotos_despues %}
-            <img src="{{ foto.imagen.url }}" style="width:120px;border:1px solid #333;margin:2px;">
+            <div style="text-align:center;page-break-inside:avoid;">
+                <img src="{{ foto.imagen.url }}" style="width:150mm;border:1px solid #333;">
+            </div>
             {% empty %}
             <span style="font-size:8pt;color:#555;">Sin fotos.</span>
             {% endfor %}
