@@ -65,7 +65,46 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Archivos subidos por usuarios (fotos). En producción Cloudflare R2 (S3-compatible);
+# en desarrollo, disco local.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+R2_ENDPOINT = env('R2_ENDPOINT', default='')
+R2_BUCKET = env('R2_BUCKET', default='')
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'OPTIONS': {},
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
+if R2_ENDPOINT and R2_BUCKET:
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': env('R2_ACCESS_KEY_ID'),
+            'secret_key': env('R2_SECRET_ACCESS_KEY'),
+            'bucket_name': R2_BUCKET,
+            'endpoint_url': R2_ENDPOINT,
+            'region_name': env('R2_REGION', default='auto'),
+            'signature_version': 's3v4',
+            'addressing_style': 'virtual',
+            'querystring_auth': True,
+            'querystring_expire': 3600,
+            'default_acl': None,
+            'file_overwrite': False,
+        },
+    }
+
+# Límites de subida (fotos comprimidas nunca llegan cerca de esto, es defensa).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

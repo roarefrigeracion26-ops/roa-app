@@ -1,6 +1,12 @@
+import os
+import uuid
+
 from django.db import models
 from django.conf import settings
 from inventory.models import EquipoAA
+
+# Máximo de fotos permitidas por etapa (Antes / Después) de un equipo.
+MAX_FOTOS_POR_MOMENTO = 3
 
 
 class TipoMantenimiento(models.TextChoices):
@@ -285,3 +291,35 @@ class MedicionCondensadoraRack(models.Model):
 
     def __str__(self):
         return f'Condensadora Rack — {self.equipo_intervenido}'
+
+
+class MomentoFoto(models.TextChoices):
+    ANTES = 'ANTES', 'Antes'
+    DESPUES = 'DESPUES', 'Después'
+
+
+def foto_upload_path(instance, filename):
+    """Ruta de la foto en el storage: fotos/<equipo_id>/<momento>/<uuid>.<ext>."""
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+        ext = '.jpg'
+    return f'fotos/{instance.equipo_intervenido_id}/{instance.momento}/{uuid.uuid4().hex}{ext}'
+
+
+class FotoEquipo(models.Model):
+    """Foto del equipo intervenido, en la etapa Antes o Después."""
+    equipo_intervenido = models.ForeignKey(
+        EquipoIntervenido, on_delete=models.CASCADE, related_name='fotos'
+    )
+    momento = models.CharField(max_length=7, choices=MomentoFoto.choices)
+    imagen = models.ImageField(upload_to=foto_upload_path)
+    creada_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Foto de equipo'
+        verbose_name_plural = 'Fotos de equipos'
+        ordering = ['creada_en']
+        indexes = [models.Index(fields=['equipo_intervenido', 'momento'])]
+
+    def __str__(self):
+        return f'{self.get_momento_display()} - {self.equipo_intervenido}'

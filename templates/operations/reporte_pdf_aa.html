@@ -361,6 +361,30 @@
             <td>{% if ei.observacion %}{{ ei.observacion.texto|default:"—" }}{% else %}—{% endif %}</td>
         </tr>
     </table>
+
+    {% if ei.fotos_antes or ei.fotos_despues %}
+    <div class="section-bar" style="margin-top:4px;background:#B8860B;">REGISTRO FOTOGRÁFICO</div>
+    <div style="border:1px solid #333;padding:4px;margin-top:3px;">
+        <div style="font-weight:bold;font-size:8pt;color:#B8860B;">ANTES</div>
+        <div>
+            {% for foto in ei.fotos_antes %}
+            <img src="{{ foto.imagen.url }}" style="width:120px;border:1px solid #333;margin:2px;">
+            {% empty %}
+            <span style="font-size:8pt;color:#555;">Sin fotos.</span>
+            {% endfor %}
+        </div>
+    </div>
+    <div style="border:1px solid #333;padding:4px;margin-top:3px;">
+        <div style="font-weight:bold;font-size:8pt;color:#B8860B;">DESPUÉS</div>
+        <div>
+            {% for foto in ei.fotos_despues %}
+            <img src="{{ foto.imagen.url }}" style="width:120px;border:1px solid #333;margin:2px;">
+            {% empty %}
+            <span style="font-size:8pt;color:#555;">Sin fotos.</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
     {% endfor %}
 
     <div class="footnote">

@@ -23,8 +23,11 @@ SPANISH_MONTHS = {
 from inventory.models import EquipoAA
 from .models import (
     OrdenServicio, EquipoIntervenido, MedicionUCA, MedicionSplit,
-    MedicionCondensadoraRack, Actividad, Observacion, TipoMantenimiento, EstadoOrden
+    MedicionCondensadoraRack, Actividad, Observacion, TipoMantenimiento, EstadoOrden,
+    FotoEquipo, MomentoFoto, MAX_FOTOS_POR_MOMENTO,
 )
+from .images import validar_archivo, procesar_imagen
+from django.core.exceptions import ValidationError
 from .services import (
     tecnico_tiene_preventivo_abierto,
     obtener_preventivo_abierto,
@@ -47,9 +50,27 @@ from .forms import (
 # ─────────────────────────────────────────────────────────
 def link_callback(uri, rel):
     import os
+    import tempfile
+    from urllib.request import urlopen, Request
+
     s_url = settings.STATIC_URL
     m_url = getattr(settings, 'MEDIA_URL', '/media/')
     path = None
+
+    # Imágenes remotas (fotos en R2 con URL firmada): se descargan a un temporal.
+    if uri.startswith(('http://', 'https://')):
+        try:
+            peticion = Request(uri, headers={'User-Agent': 'roa-app/1.0'})
+            with urlopen(peticion, timeout=20) as respuesta:
+                contenido = respuesta.read()
+            sufijo = os.path.splitext(uri.split('?')[0])[1] or '.jpg'
+            temporal = tempfile.NamedTemporaryFile(delete=False, suffix=sufijo)
+            temporal.write(contenido)
+            temporal.close()
+            return temporal.name
+        except Exception:
+            return uri
+
     if uri.startswith(s_url):
         relative_path = uri.replace(s_url, '', 1).lstrip('/')
         for d in getattr(settings, 'STATICFILES_DIRS', []):
@@ -263,7 +284,7 @@ class NuevaOrdenView(LoginRequiredMixin, View):
 def _build_formulario_context(orden, equipo_form=None):
     """Construye el contexto del formulario de intervención."""
     equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
-        'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
+        'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion', 'fotos'
     ).all()
     actividades = orden.actividades.all()
     
@@ -317,6 +338,10 @@ def _build_formulario_context(orden, equipo_form=None):
         if pendiente:
             equipos_pendientes.append(ei)
 
+    for ei in equipos_intervenidos:
+        ei.fotos_antes = [f for f in ei.fotos.all() if f.momento == MomentoFoto.ANTES]
+        ei.fotos_despues = [f for f in ei.fotos.all() if f.momento == MomentoFoto.DESPUES]
+
     return {
         'orden': orden,
         'equipo': orden.equipo,
@@ -328,6 +353,9 @@ def _build_formulario_context(orden, equipo_form=None):
         'es_preventivo': orden.tipo == TipoMantenimiento.PREVENTIVO,
         'equipos_db': equipos_db,
         'equipos_json': equipos_json,
+        'max_fotos': MAX_FOTOS_POR_MOMENTO,
+        'momento_antes': MomentoFoto.ANTES,
+        'momento_despues': MomentoFoto.DESPUES,
     }
 
 
@@ -553,6 +581,81 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
 
 
 # ─────────────────────────────────────────────────────────
+# SubirFotosView: agrega fotos (Antes/Después) a un equipo intervenido
+# ─────────────────────────────────────────────────────────
+class SubirFotosView(LoginRequiredMixin, View):
+    """POST: agrega hasta 3 fotos por etapa (Antes/Después) a un equipo."""
+
+    def post(self, request, orden_id, equipo_id, momento):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id)
+        if orden.tecnico != request.user and not request.user.is_supervisor:
+            return HttpResponse('No autorizado', status=403)
+        if orden.estado != EstadoOrden.ABIERTO:
+            messages.error(request, 'No se pueden agregar fotos a una orden cerrada.')
+            return redirect('operations:formulario_orden', orden_id=orden.pk)
+        if momento not in MomentoFoto.values:
+            messages.error(request, 'Etapa de foto inválida.')
+            return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+        ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
+        archivos = request.FILES.getlist('fotos')
+        if not archivos:
+            messages.error(request, 'No seleccionaste ninguna foto.')
+            return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+        existentes = ei.fotos.filter(momento=momento).count()
+        if existentes >= MAX_FOTOS_POR_MOMENTO:
+            messages.warning(request, 'Máximo 3 fotos por etapa. Elimina una para agregar otra.')
+            return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+        agregadas = 0
+        for archivo in archivos:
+            if existentes + agregadas >= MAX_FOTOS_POR_MOMENTO:
+                messages.warning(request, 'Máximo 3 fotos por etapa. Elimina una para agregar otra.')
+                break
+            foto = None
+            try:
+                validar_archivo(archivo)
+                foto = FotoEquipo(equipo_intervenido=ei, momento=momento)
+                foto.imagen.save('foto.jpg', procesar_imagen(archivo), save=False)
+                foto.save()
+                agregadas += 1
+            except ValidationError as error:
+                mensaje = error.messages[0] if error.messages else 'Imagen inválida.'
+                messages.error(request, mensaje)
+            except Exception:
+                if foto is not None and foto.imagen and foto.imagen.name:
+                    try:
+                        foto.imagen.delete(save=False)
+                    except Exception:
+                        pass
+                messages.error(request, 'No se pudo guardar la foto. Intenta de nuevo.')
+
+        if agregadas:
+            messages.success(request, f'Se agregaron {agregadas} foto(s) a la etapa {dict(MomentoFoto.choices)[momento]}.')
+        return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
+# EliminarFotoView: elimina una foto de un equipo intervenido
+# ─────────────────────────────────────────────────────────
+class EliminarFotoView(LoginRequiredMixin, View):
+    """POST: elimina una foto y su archivo del storage."""
+
+    def post(self, request, orden_id, foto_id):
+        orden = get_object_or_404(OrdenServicio, pk=orden_id)
+        if orden.tecnico != request.user and not request.user.is_supervisor:
+            return HttpResponse('No autorizado', status=403)
+        if orden.estado != EstadoOrden.ABIERTO:
+            messages.error(request, 'No se pueden eliminar fotos de una orden cerrada.')
+            return redirect('operations:formulario_orden', orden_id=orden.pk)
+        foto = get_object_or_404(FotoEquipo, pk=foto_id, equipo_intervenido__orden=orden)
+        foto.delete()
+        messages.success(request, 'Foto eliminada.')
+        return redirect('operations:formulario_orden', orden_id=orden.pk)
+
+
+# ─────────────────────────────────────────────────────────
 # FinalizarOrdenView: cierra la orden y genera PDF
 # ─────────────────────────────────────────────────────────
 class FinalizarOrdenView(LoginRequiredMixin, View):
@@ -623,9 +726,13 @@ class PDFOrdenView(LoginRequiredMixin, View):
         if orden.tecnico != request.user and not request.user.is_supervisor:
             return HttpResponse('No autorizado', status=403)
         equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
-            'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion'
+            'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion', 'fotos'
         ).all()
         actividades = orden.actividades.all()
+
+        for ei in equipos_intervenidos:
+            ei.fotos_antes = [f for f in ei.fotos.all() if f.momento == MomentoFoto.ANTES]
+            ei.fotos_despues = [f for f in ei.fotos.all() if f.momento == MomentoFoto.DESPUES]
 
         context = {
             'orden': orden,

@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import OrdenServicio, EquipoIntervenido, MedicionUCA, MedicionSplit, Actividad, Observacion
+from .models import (
+    OrdenServicio, EquipoIntervenido, MedicionUCA, MedicionSplit, Actividad, Observacion,
+    FotoEquipo,
+)
+
+
+class FotoEquipoInline(admin.TabularInline):
+    model = FotoEquipo
+    extra = 0
+    readonly_fields = ('creada_en',)
 
 
 class EquipoIntervenidoInline(admin.TabularInline):
@@ -28,6 +37,15 @@ class EquipoIntervenidoAdmin(admin.ModelAdmin):
     list_display = ('id', 'nombre_equipo', 'tipo_equipo', 'marca', 'modelo', 'orden')
     search_fields = ('nombre_equipo', 'marca', 'activo_fijo', 'orden__radicado')
     list_filter = ('tipo_equipo',)
+    inlines = [FotoEquipoInline]
+
+
+@admin.register(FotoEquipo)
+class FotoEquipoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'equipo_intervenido', 'momento', 'creada_en')
+    list_filter = ('momento',)
+    search_fields = ('equipo_intervenido__nombre_equipo', 'equipo_intervenido__orden__radicado')
+    readonly_fields = ('creada_en',)
 
 
 @admin.register(MedicionUCA)
