@@ -132,9 +132,11 @@ class FotosViewsTests(TestCase):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
         respuesta = self.client.get(reverse('operations:formulario_orden', args=[self.orden.pk]))
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, 'Fotos Antes')
-        self.assertContains(respuesta, 'Fotos Después')
-        self.assertContains(respuesta, '1/3')
+        html = respuesta.content.decode()
+        self.assertIn('col-md-6', html)
+        self.assertIn('foto-bloque-head--antes', html)
+        self.assertIn('foto-bloque-head--despues', html)
+        self.assertIn('1/3', html)
 
     def test_plantilla_pdf_incluye_registro_fotografico(self):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})

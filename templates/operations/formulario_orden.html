@@ -39,6 +39,52 @@
         background: #fff;
         border: 1px solid #dee2e6;
         border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .foto-bloque-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #fff;
+        padding: 0.4rem 0.65rem;
+        border-radius: 7px 7px 0 0;
+    }
+
+    .foto-bloque-head--antes {
+        background: var(--roa-blue);
+    }
+
+    .foto-bloque-head--despues {
+        background: var(--roa-gold);
+    }
+
+    .foto-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 1rem;
+        border: 1px dashed #cfd8e3;
+        border-radius: 8px;
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .foto-empty i {
+        font-size: 1.4rem;
+        opacity: 0.55;
+    }
+
+    .foto-del:focus-visible {
+        outline: 2px solid var(--roa-blue);
+        outline-offset: 2px;
     }
 
     .foto-thumbs {
@@ -321,12 +367,18 @@
             <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }}</div>
             {% if ei.observacion.texto %}<div class="small text-muted mt-1">{{ ei.observacion.texto }}</div>{% endif %}
 
-            {% with fotos=ei.fotos_antes titulo='Fotos Antes' momento=momento_antes count=ei.fotos_antes|length %}
-                {% include 'operations/_bloque_fotos.html' %}
-            {% endwith %}
-            {% with fotos=ei.fotos_despues titulo='Fotos Después' momento=momento_despues count=ei.fotos_despues|length %}
-                {% include 'operations/_bloque_fotos.html' %}
-            {% endwith %}
+            <div class="row g-3 mt-1">
+                <div class="col-12 col-md-6 d-flex">
+                    {% with fotos=ei.fotos_antes titulo='Antes' etapa='antes' momento=momento_antes count=ei.fotos_antes|length %}
+                        {% include 'operations/_bloque_fotos.html' %}
+                    {% endwith %}
+                </div>
+                <div class="col-12 col-md-6 d-flex">
+                    {% with fotos=ei.fotos_despues titulo='Después' etapa='despues' momento=momento_despues count=ei.fotos_despues|length %}
+                        {% include 'operations/_bloque_fotos.html' %}
+                    {% endwith %}
+                </div>
+            </div>
         </div>
         {% empty %}
         <div class="text-center text-muted py-3 small">No hay equipos.</div>
