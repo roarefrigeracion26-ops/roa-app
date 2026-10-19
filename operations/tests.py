@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import tempfile
 import threading
 from datetime import date
@@ -711,10 +712,67 @@ class ContrasteGoldTests(TestCase):
             ratio, 4.5, f'{self.GOLD_AA} alcanza {ratio:.2f}:1 sobre blanco'
         )
 
-    def test_templates_de_fotos_usan_gold_aa(self):
+    def _contenido_template(self, nombre):
+        ruta = settings.BASE_DIR / 'templates' / 'operations' / nombre
+        return ruta.read_text(encoding='utf-8')
+
+    @staticmethod
+    def _regla_css(contenido, selector):
+        patron = re.escape(selector) + r'\s*\{([^}]*)\}'
+        coincidencias = re.findall(patron, contenido)
+        if len(coincidencias) != 1:
+            raise AssertionError(
+                f'Se esperaba una regla CSS para {selector}, se hallaron '
+                f'{len(coincidencias)}'
+            )
+        return coincidencias[0]
+
+    @staticmethod
+    def _valor_declaracion(regla, propiedad):
+        patron = rf'(?:^|;)\s*{re.escape(propiedad)}\s*:\s*([^;]+)'
+        coincidencia = re.search(patron, regla)
+        if not coincidencia:
+            raise AssertionError(f'Falta {propiedad} en la regla: {regla!r}')
+        return coincidencia.group(1).strip().lower()
+
+    def test_templates_de_fotos_no_usan_gold_anterior(self):
         for nombre in ('formulario_orden.html', 'reporte_pdf_aa.html'):
-            ruta = settings.BASE_DIR / 'templates' / 'operations' / nombre
-            contenido = ruta.read_text(encoding='utf-8')
             with self.subTest(template=nombre):
-                self.assertIn(self.GOLD_AA, contenido)
-                self.assertNotIn(self.GOLD_ANTERIOR, contenido)
+                self.assertNotIn(self.GOLD_ANTERIOR, self._contenido_template(nombre))
+
+    def test_formulario_usa_gold_aa_en_cabecera_y_tab(self):
+        contenido = self._contenido_template('formulario_orden.html')
+
+        cabecera = self._regla_css(contenido, '.foto-bloque-head')
+        self.assertEqual(self._valor_declaracion(cabecera, 'color'), '#fff')
+
+        despues = self._regla_css(contenido, '.foto-bloque-head--despues')
+        self.assertEqual(
+            self._valor_declaracion(despues, 'background'), '#8b6914'
+        )
+
+        split = self._regla_css(contenido, '.tab-tipo.active-split')
+        self.assertEqual(self._valor_declaracion(split, 'background'), '#8b6914')
+        self.assertNotIn('var(--roa-gold)', split)
+
+    def test_pdf_usa_gold_aa_en_barra_y_etiquetas(self):
+        contenido = self._contenido_template('reporte_pdf_aa.html')
+
+        barra = self._regla_css(contenido, '.section-bar')
+        self.assertEqual(self._valor_declaracion(barra, 'color'), '#fff')
+
+        self.assertRegex(
+            contenido,
+            r'<div class="section-bar"[^>]*background:\s*#8B6914[^>]*>'
+            r'\s*REGISTRO FOTOGRÁFICO',
+            'La barra REGISTRO FOTOGRÁFICO debe declarar background:#8B6914',
+        )
+
+        for etiqueta in ('ANTES', 'DESPUÉS'):
+            with self.subTest(etiqueta=etiqueta):
+                self.assertRegex(
+                    contenido,
+                    rf'<div style="[^"]*color:\s*#8B6914;[^"]*">\s*'
+                    rf'{etiqueta}\s*</div>',
+                    f'La etiqueta {etiqueta} debe usar #8B6914',
+                )
