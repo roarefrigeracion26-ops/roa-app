@@ -32,6 +32,14 @@ def imagen_subida(nombre='foto.jpg', tamano=(800, 600), color=(20, 40, 60)):
     return SimpleUploadedFile(nombre, buffer.read(), content_type='image/jpeg')
 
 
+def imagen_gif_subida(nombre='animacion.gif'):
+    """Devuelve un SimpleUploadedFile GIF válido pero no permitido."""
+    buffer = io.BytesIO()
+    Image.new('P', (10, 10)).save(buffer, format='GIF')
+    buffer.seek(0)
+    return SimpleUploadedFile(nombre, buffer.read(), content_type='image/gif')
+
+
 class ImagenUnitTests(TestCase):
     def test_procesar_imagen_reduce_y_recomprime(self):
         original = imagen_subida('grande.jpg', tamano=(2400, 1800))
@@ -50,6 +58,12 @@ class ImagenUnitTests(TestCase):
 
     def test_validar_archivo_acepta_imagen(self):
         images.validar_archivo(imagen_subida())
+
+    def test_validar_archivo_rechaza_gif(self):
+        with self.assertRaisesMessage(
+            ValidationError, 'Formato no soportado. Usa JPG, PNG o WebP.',
+        ):
+            images.validar_archivo(imagen_gif_subida())
 
 
 @override_settings(
@@ -146,6 +160,15 @@ class FotosViewsTests(TestCase):
         archivo = SimpleUploadedFile('nota.txt', b'no imagen', content_type='text/plain')
         self.client.post(self.url_subir(), {'fotos': [archivo]})
         self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei).count(), 0)
+
+    def test_rechaza_imagen_gif(self):
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': [imagen_gif_subida()]},
+            HTTP_X_REQUESTED_WITH='fetch',
+        )
+        self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei).count(), 0)
+        self.assertFalse(respuesta.json()['ok'])
+        self.assertIn('Formato no soportado', respuesta.json()['message'])
 
     def test_momento_invalido_no_crea(self):
         self.client.post(self.url_subir('NO_EXISTE'), {'fotos': [imagen_subida()]})

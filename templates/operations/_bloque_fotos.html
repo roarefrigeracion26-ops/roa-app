@@ -47,7 +47,7 @@ Contexto esperado (vía {% with %}):
             <form method="post" enctype="multipart/form-data"
                   action="{% url 'operations:subir_fotos' orden.pk ei.pk momento %}" class="foto-form mt-1">
                 {% csrf_token %}
-                <input type="file" name="fotos" accept="image/*" multiple
+                <input type="file" name="fotos" accept=".jpg,.jpeg,.png,.webp" multiple
                        class="form-control form-control-sm foto-input" aria-label="Seleccionar fotos de {{ titulo }}">
                 <div class="small text-muted foto-aviso mt-1">Hasta {{ max_fotos }} fotos. Se optimizan automáticamente.</div>
                 <button type="submit" class="btn btn-roa-primary btn-sm w-100 mt-1">

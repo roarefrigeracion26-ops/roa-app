@@ -31,9 +31,14 @@ def validar_archivo(archivo):
         raise ValidationError('El archivo no es una imagen.')
 
     try:
-        Image.open(archivo).verify()
+        with Image.open(archivo) as img:
+            if img.format not in ('JPEG', 'PNG', 'WEBP'):
+                raise ValidationError('Formato no soportado. Usa JPG, PNG o WebP.')
+            img.verify()
+    except ValidationError:
+        raise
     except Exception as error:
-        raise ValidationError('El archivo no es una imagen válida o está dañado.') from error
+        raise ValidationError('El archivo no es una imagen válida o está dañada.') from error
     finally:
         try:
             archivo.seek(0)
