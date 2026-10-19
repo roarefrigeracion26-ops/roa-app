@@ -657,10 +657,7 @@
         if (aviso) aviso.textContent = 'Listo para subir.';
     }
 
-    function mostrarMensajeFoto(bloque, form, texto) {
-        const aviso = (form && form.querySelector('.foto-aviso')) ||
-                      (bloque && bloque.querySelector('.foto-aviso'));
-        if (aviso) { aviso.textContent = texto; return; }
+    function mostrarMensajeBloque(bloque, texto) {
         if (!bloque) return;
         let msg = bloque.querySelector('.foto-mensaje');
         if (!msg) {
@@ -669,6 +666,13 @@
             bloque.appendChild(msg);
         }
         msg.textContent = texto;
+    }
+
+    function mostrarMensajeFoto(bloque, form, texto) {
+        const aviso = (form && form.querySelector('.foto-aviso')) ||
+                      (bloque && bloque.querySelector('.foto-aviso'));
+        if (aviso) { aviso.textContent = texto; return; }
+        mostrarMensajeBloque(bloque, texto);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -731,6 +735,10 @@
             e.preventDefault();
             const bloque = form.closest('[data-foto-bloque]');
             const btn = form.querySelector('button[type="submit"]');
+            const inputArchivos = form.querySelector('.foto-input');
+            const seleccionadas = inputArchivos ? inputArchivos.files.length : 0;
+            const badge = bloque ? bloque.querySelector('.foto-bloque-head .badge') : null;
+            const previos = badge ? (parseInt(badge.textContent, 10) || 0) : 0;
             if (btn) btn.disabled = true;
             try {
                 const resp = await fetch(form.action, {
@@ -746,7 +754,13 @@
                 }
                 const data = await resp.json();
                 if (data.ok && data.html && bloque) {
+                    const idBloque = bloque.id;
                     bloque.outerHTML = data.html;
+                    const nuevoBloque = idBloque ? document.getElementById(idBloque) : null;
+                    const huboFallos = seleccionadas > 0 && data.count < previos + seleccionadas;
+                    if (huboFallos && data.message) {
+                        mostrarMensajeBloque(nuevoBloque, data.message);
+                    }
                 } else if (data.message) {
                     mostrarMensajeFoto(bloque, form, data.message);
                 }

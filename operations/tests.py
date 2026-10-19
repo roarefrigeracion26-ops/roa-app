@@ -177,6 +177,39 @@ class FotosViewsTests(TestCase):
         self.assertEqual(data['count'], 0)
         self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei).count(), 0)
 
+    def test_subir_foto_ajax_parcial_incluye_error_en_message(self):
+        archivo = SimpleUploadedFile('nota.txt', b'no imagen', content_type='text/plain')
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': [imagen_subida(), archivo]},
+            HTTP_X_REQUESTED_WITH='fetch',
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        data = respuesta.json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['count'], 1)
+        self.assertIn('Se agregaron 1 foto', data['message'])
+        self.assertIn('no es una imagen', data['message'])
+
+    def test_subir_foto_sin_header_parcial_emite_error_y_exito(self):
+        archivo = SimpleUploadedFile('nota.txt', b'no imagen', content_type='text/plain')
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': [imagen_subida(), archivo]}, follow=True,
+        )
+        self.assertEqual(respuesta.redirect_chain[-1][1], 302)
+        mensajes = list(respuesta.context['messages'])
+        self.assertTrue(any('Se agregaron 1 foto' in m.message for m in mensajes))
+        self.assertTrue(any('no es una imagen' in m.message and m.level_tag == 'error' for m in mensajes))
+
+    def test_subir_foto_sin_header_maximo_usa_warning(self):
+        for i in range(MAX_FOTOS_POR_MOMENTO):
+            FotoEquipo.objects.create(
+                equipo_intervenido=self.ei, momento='ANTES',
+                imagen=SimpleUploadedFile(f'{i}.jpg', b'x', content_type='image/jpeg'),
+            )
+        respuesta = self.client.post(self.url_subir(), {'fotos': [imagen_subida()]}, follow=True)
+        mensajes = list(respuesta.context['messages'])
+        self.assertTrue(any('Máximo' in m.message and m.level_tag == 'warning' for m in mensajes))
+
     def test_subir_foto_sin_header_sigue_redirigiendo(self):
         respuesta = self.client.post(self.url_subir(), {'fotos': imagen_subida()})
         self.assertEqual(respuesta.status_code, 302)
@@ -210,6 +243,7 @@ class FotosViewsTests(TestCase):
         self.assertIn('id="equipos-intervenidos"', html)
         self.assertIn('data-foto-bloque', html)
         self.assertIn('foto-delete-form', html)
+        self.assertIn('mostrarMensajeBloque', html)
 
     def test_formulario_renderiza_bloques_de_fotos(self):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})

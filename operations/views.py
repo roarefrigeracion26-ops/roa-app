@@ -613,7 +613,7 @@ def _json_error(message):
 class SubirFotosView(LoginRequiredMixin, View):
     """POST: agrega hasta 3 fotos por etapa (Antes/Después) a un equipo."""
 
-    def _respuesta(self, request, orden, ei, momento, ok, message):
+    def _respuesta(self, request, orden, ei, momento, ok, message, errores=None, nivel=messages.error):
         if _es_fetch(request):
             fotos = ei.fotos.filter(momento=momento)
             return JsonResponse({
@@ -621,7 +621,14 @@ class SubirFotosView(LoginRequiredMixin, View):
                 'count': fotos.count(), 'max': MAX_FOTOS_POR_MOMENTO,
                 'html': _render_bloque_fotos(request, orden, ei, momento),
             })
-        (messages.success if ok else messages.error)(request, message)
+        # Sin JS se conserva el comportamiento clásico: cada fallo con su nivel
+        # (error/warning) y, si se agregó algo, el mensaje de éxito.
+        for nivel_error, texto_error in (errores or []):
+            nivel_error(request, texto_error)
+        if not errores and not ok:
+            nivel(request, message)
+        if ok:
+            messages.success(request, message)
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 
     def post(self, request, orden_id, equipo_id, momento):
@@ -647,17 +654,17 @@ class SubirFotosView(LoginRequiredMixin, View):
             return self._respuesta(request, orden, ei, momento, False, 'No seleccionaste ninguna foto.')
 
         existentes = ei.fotos.filter(momento=momento).count()
+        aviso_maximo = 'Máximo 3 fotos por etapa. Elimina una para agregar otra.'
         if existentes >= MAX_FOTOS_POR_MOMENTO:
             return self._respuesta(
-                request, orden, ei, momento, False,
-                'Máximo 3 fotos por etapa. Elimina una para agregar otra.',
+                request, orden, ei, momento, False, aviso_maximo, nivel=messages.warning,
             )
 
         agregadas = 0
         errores = []
         for archivo in archivos:
             if existentes + agregadas >= MAX_FOTOS_POR_MOMENTO:
-                errores.append('Máximo 3 fotos por etapa. Elimina una para agregar otra.')
+                errores.append((messages.warning, aviso_maximo))
                 break
             foto = None
             try:
@@ -667,23 +674,24 @@ class SubirFotosView(LoginRequiredMixin, View):
                 foto.save()
                 agregadas += 1
             except ValidationError as error:
-                errores.append(error.messages[0] if error.messages else 'Imagen inválida.')
+                errores.append((messages.error, error.messages[0] if error.messages else 'Imagen inválida.'))
             except Exception:
                 if foto is not None and foto.imagen and foto.imagen.name:
                     try:
                         foto.imagen.delete(save=False)
                     except Exception:
                         pass
-                errores.append('No se pudo guardar la foto. Intenta de nuevo.')
+                errores.append((messages.error, 'No se pudo guardar la foto. Intenta de nuevo.'))
 
         if agregadas:
             message = f'Se agregaron {agregadas} foto(s) a la etapa {dict(MomentoFoto.choices)[momento]}.'
             if errores:
-                message = f'{message} {errores[0]}'
-            return self._respuesta(request, orden, ei, momento, True, message)
+                message = f'{message} {errores[0][1]}'
+            return self._respuesta(request, orden, ei, momento, True, message, errores=errores)
         return self._respuesta(
             request, orden, ei, momento, False,
-            errores[0] if errores else 'No se pudo guardar la foto. Intenta de nuevo.',
+            errores[0][1] if errores else 'No se pudo guardar la foto. Intenta de nuevo.',
+            errores=errores,
         )
 
 
