@@ -84,8 +84,8 @@
     }
 
     .foto-del:focus-visible {
-        outline: 2px solid var(--roa-blue);
-        outline-offset: 2px;
+        outline: none;
+        box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px var(--roa-blue);
     }
 
     .foto-thumbs {
@@ -114,14 +114,17 @@
         position: absolute;
         top: 2px;
         right: 2px;
-        width: 22px;
-        height: 22px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         border: none;
         border-radius: 50%;
         background: rgba(0, 0, 0, 0.65);
         color: #fff;
         line-height: 1;
-        font-size: 14px;
+        font-size: 20px;
         padding: 0;
         cursor: pointer;
     }

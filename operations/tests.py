@@ -338,6 +338,34 @@ class FotosViewsTests(TestCase):
         self.assertIn('foto-bloque-head--despues', html)
         self.assertIn('1/3', html)
 
+    def test_boton_eliminar_foto_es_accesible_y_visible(self):
+        self.client.post(self.url_subir(), {'fotos': imagen_subida()})
+        respuesta = self.client.get(
+            reverse('operations:formulario_orden', args=[self.orden.pk])
+        )
+        html = respuesta.content.decode()
+        self.assertIn('aria-label="Eliminar foto"', html)
+
+        regla_boton = re.search(r'\.foto-del\s*\{([^}]*)\}', html)
+        self.assertIsNotNone(regla_boton)
+        regla_boton = regla_boton.group(1)
+        dimensiones = [
+            int(valor)
+            for valor in re.findall(
+                r'(?:^|;)\s*(?:min-)?(?:width|height)\s*:\s*(\d+)px',
+                regla_boton,
+            )
+        ]
+        self.assertTrue(dimensiones)
+        self.assertGreaterEqual(min(dimensiones), 24)
+
+        regla_foco = re.search(r'\.foto-del:focus-visible\s*\{([^}]*)\}', html)
+        self.assertIsNotNone(regla_foco)
+        regla_foco = regla_foco.group(1)
+        self.assertIn('box-shadow', regla_foco)
+        self.assertIn('inset', regla_foco)
+        self.assertIn('outline: none', regla_foco)
+
     def test_plantilla_pdf_incluye_registro_fotografico(self):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
         ei = EquipoIntervenido.objects.get(pk=self.ei.pk)
