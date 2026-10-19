@@ -6,6 +6,7 @@ from datetime import date
 from unittest import skipUnless
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -685,3 +686,35 @@ class LimiteConcurrenteTests(TransactionTestCase):
             ).count(),
             MAX_FOTOS_POR_MOMENTO,
         )
+
+
+class ContrasteGoldTests(TestCase):
+    GOLD_AA = '#8B6914'
+    GOLD_ANTERIOR = '#B8860B'
+
+    @staticmethod
+    def _lin(c):
+        c = c / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    @classmethod
+    def _ratio_blanco(cls, hexcolor):
+        r, g, b = (int(hexcolor[i:i + 2], 16) for i in (1, 3, 5))
+        luminancia = (
+            0.2126 * cls._lin(r) + 0.7152 * cls._lin(g) + 0.0722 * cls._lin(b)
+        )
+        return 1.05 / (luminancia + 0.05)
+
+    def test_gold_cumple_contraste_aa_sobre_blanco(self):
+        ratio = self._ratio_blanco(self.GOLD_AA)
+        self.assertGreaterEqual(
+            ratio, 4.5, f'{self.GOLD_AA} alcanza {ratio:.2f}:1 sobre blanco'
+        )
+
+    def test_templates_de_fotos_usan_gold_aa(self):
+        for nombre in ('formulario_orden.html', 'reporte_pdf_aa.html'):
+            ruta = settings.BASE_DIR / 'templates' / 'operations' / nombre
+            contenido = ruta.read_text(encoding='utf-8')
+            with self.subTest(template=nombre):
+                self.assertIn(self.GOLD_AA, contenido)
+                self.assertNotIn(self.GOLD_ANTERIOR, contenido)
