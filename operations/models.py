@@ -318,7 +318,7 @@ class FotoEquipo(models.Model):
     class Meta:
         verbose_name = 'Foto de equipo'
         verbose_name_plural = 'Fotos de equipos'
-        ordering = ['creada_en']
+        ordering = ['creada_en', 'id']
         indexes = [models.Index(fields=['equipo_intervenido', 'momento'])]
 
     def __str__(self):

@@ -167,3 +167,20 @@ class FotosViewsTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta['Content-Type'], 'application/pdf')
         self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
+    def test_meta_ordering_estable(self):
+        self.assertEqual(FotoEquipo._meta.ordering, ['creada_en', 'id'])
+
+    def test_orden_estable_con_misma_fecha(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        base = timezone.now()
+        f1 = FotoEquipo.objects.create(equipo_intervenido=self.ei, momento=MomentoFoto.ANTES)
+        f2 = FotoEquipo.objects.create(equipo_intervenido=self.ei, momento=MomentoFoto.ANTES)
+        FotoEquipo.objects.filter(pk=f1.pk).update(creada_en=base)
+        FotoEquipo.objects.filter(pk=f2.pk).update(creada_en=base)
+
+        ids = list(FotoEquipo.objects.filter(equipo_intervenido=self.ei)
+                   .values_list('pk', flat=True))
+        self.assertEqual(ids, sorted([f1.pk, f2.pk]))
