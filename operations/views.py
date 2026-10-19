@@ -836,7 +836,10 @@ class PDFOrdenView(LoginRequiredMixin, View):
         html = template.render(context)
 
         fotos = [f for ei in equipos_intervenidos for f in (ei.fotos_antes + ei.fotos_despues)]
-        remotas = sum(1 for f in fotos if f.imagen.url.startswith(('http://', 'https://')))
+        remotas = len({
+            f.imagen.url for f in fotos
+            if f.imagen.url.startswith(('http://', 'https://'))
+        })
         state = {'ok': set(), 'fallos': {}, 'temporales': []}
 
         result = io.BytesIO()
@@ -859,7 +862,7 @@ class PDFOrdenView(LoginRequiredMixin, View):
             )
             return render(request, 'operations/pdf_error.html', {
                 'orden': orden,
-                'faltantes': max(remotas - len(state['ok']), 0),
+                'faltantes': len(state['fallos']) if state['fallos'] else max(remotas - len(state['ok']), 0),
                 'detalle': list(state['fallos'].keys()),
             }, status=500)
 

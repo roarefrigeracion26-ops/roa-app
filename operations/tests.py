@@ -365,6 +365,36 @@ class FotosViewsTests(TestCase):
         for ruta in creados:
             self.assertFalse(os.path.exists(ruta))
 
+    def test_pdf_dos_fotos_misma_url_remota_no_falla(self):
+        from operations.views import PDFOrdenView
+
+        self._crear_foto(self.ei, MomentoFoto.ANTES)
+        self._crear_foto(self.ei, MomentoFoto.ANTES)
+
+        buffer = io.BytesIO()
+        Image.new('RGB', (20, 20), (10, 20, 30)).save(buffer, format='JPEG')
+        contenido = buffer.getvalue()
+
+        class Respuesta:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return contenido
+
+        with patch('operations.views.urlopen', return_value=Respuesta()) as descarga, \
+                patch('django.core.files.storage.FileSystemStorage.url',
+                      return_value='https://r2.example/misma.jpg'), \
+                patch('django.contrib.staticfiles.storage.StaticFilesStorage.url',
+                      return_value='static/image/roa-logo.jpeg'):
+            respuesta = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
     def test_meta_ordering_estable(self):
         self.assertEqual(FotoEquipo._meta.ordering, ['creada_en', 'id'])
 
