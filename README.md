@@ -48,6 +48,12 @@ python manage.py runserver
 5. Start: `gunicorn config.wsgi`
 6. La cámara en móvil requiere **HTTPS**; Render lo proporciona.
 
+## Almacenamiento de fotos (Cloudflare R2)
+
+En producción se requiere **Cloudflare R2** porque el disco de Render es efímero y las fotos se perderían en cada despliegue. Configure `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` y `R2_REGION=auto`.
+
+La ruta `/media/` solo se sirve en local con `DEBUG=True`; con `DEBUG=False` el proyecto no la expone.
+
 ## Estructura de apps
 
 | App        | Uso                                              |

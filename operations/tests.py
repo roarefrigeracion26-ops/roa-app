@@ -804,3 +804,19 @@ class ContrasteGoldTests(TestCase):
                     rf'{etiqueta}\s*</div>',
                     f'La etiqueta {etiqueta} debe usar #8B6914',
                 )
+
+
+class MediaPatternsTests(TestCase):
+    @override_settings(DEBUG=True)
+    def test_media_se_sirve_en_debug(self):
+        from config.urls import _media_patterns
+
+        patrones = _media_patterns()
+        self.assertTrue(patrones)
+        self.assertTrue(any('media/' in str(patron.pattern) for patron in patrones))
+
+    @override_settings(DEBUG=False)
+    def test_media_no_se_sirve_fuera_de_debug(self):
+        from config.urls import _media_patterns
+
+        self.assertEqual(_media_patterns(), [])
