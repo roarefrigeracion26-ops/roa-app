@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.views import View
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
@@ -666,51 +666,56 @@ class SubirFotosView(LoginRequiredMixin, View):
             messages.error(request, aviso)
             return redirect('operations:formulario_orden', orden_id=orden.pk)
 
-        ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
         archivos = request.FILES.getlist('fotos')
         if not archivos:
+            ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
             return self._respuesta(request, orden, ei, momento, False, 'No seleccionaste ninguna foto.')
 
-        existentes = ei.fotos.filter(momento=momento).count()
-        aviso_maximo = 'Máximo 3 fotos por etapa. Elimina una para agregar otra.'
-        if existentes >= MAX_FOTOS_POR_MOMENTO:
-            return self._respuesta(
-                request, orden, ei, momento, False, aviso_maximo, nivel=messages.warning,
+        with transaction.atomic():
+            ei = get_object_or_404(
+                EquipoIntervenido.objects.select_for_update(),
+                pk=equipo_id, orden=orden,
             )
+            existentes = ei.fotos.filter(momento=momento).count()
+            aviso_maximo = 'Máximo 3 fotos por etapa. Elimina una para agregar otra.'
+            if existentes >= MAX_FOTOS_POR_MOMENTO:
+                return self._respuesta(
+                    request, orden, ei, momento, False, aviso_maximo, nivel=messages.warning,
+                )
 
-        agregadas = 0
-        errores = []
-        for archivo in archivos:
-            if existentes + agregadas >= MAX_FOTOS_POR_MOMENTO:
-                errores.append((messages.warning, aviso_maximo))
-                break
-            foto = None
-            try:
-                validar_archivo(archivo)
-                foto = FotoEquipo(equipo_intervenido=ei, momento=momento)
-                foto.imagen.save('foto.jpg', procesar_imagen(archivo), save=False)
-                foto.save()
-                agregadas += 1
-            except ValidationError as error:
-                errores.append((messages.error, error.messages[0] if error.messages else 'Imagen inválida.'))
-            except Exception:
-                if foto is not None and foto.imagen and foto.imagen.name:
-                    try:
-                        foto.imagen.delete(save=False)
-                    except Exception:
-                        pass
-                errores.append((messages.error, 'No se pudo guardar la foto. Intenta de nuevo.'))
+            agregadas = 0
+            errores = []
+            for archivo in archivos:
+                if existentes + agregadas >= MAX_FOTOS_POR_MOMENTO:
+                    errores.append((messages.warning, aviso_maximo))
+                    break
+                foto = None
+                try:
+                    validar_archivo(archivo)
+                    foto = FotoEquipo(equipo_intervenido=ei, momento=momento)
+                    foto.imagen.save('foto.jpg', procesar_imagen(archivo), save=False)
+                    foto.save()
+                    agregadas += 1
+                except ValidationError as error:
+                    errores.append((messages.error, error.messages[0] if error.messages else 'Imagen inválida.'))
+                except Exception:
+                    if foto is not None and foto.imagen and foto.imagen.name:
+                        try:
+                            foto.imagen.delete(save=False)
+                        except Exception:
+                            pass
+                    errores.append((messages.error, 'No se pudo guardar la foto. Intenta de nuevo.'))
 
-        if agregadas:
-            message = f'Se agregaron {agregadas} foto(s) a la etapa {dict(MomentoFoto.choices)[momento]}.'
-            if errores:
-                message = f'{message} {errores[0][1]}'
-            return self._respuesta(request, orden, ei, momento, True, message, errores=errores)
-        return self._respuesta(
-            request, orden, ei, momento, False,
-            errores[0][1] if errores else 'No se pudo guardar la foto. Intenta de nuevo.',
-            errores=errores,
-        )
+            if agregadas:
+                message = f'Se agregaron {agregadas} foto(s) a la etapa {dict(MomentoFoto.choices)[momento]}.'
+                if errores:
+                    message = f'{message} {errores[0][1]}'
+                return self._respuesta(request, orden, ei, momento, True, message, errores=errores)
+            return self._respuesta(
+                request, orden, ei, momento, False,
+                errores[0][1] if errores else 'No se pudo guardar la foto. Intenta de nuevo.',
+                errores=errores,
+            )
 
 
 # ─────────────────────────────────────────────────────────

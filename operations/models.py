@@ -1,6 +1,7 @@
 import os
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
 from inventory.models import EquipoAA
@@ -323,3 +324,14 @@ class FotoEquipo(models.Model):
 
     def __str__(self):
         return f'{self.get_momento_display()} - {self.equipo_intervenido}'
+
+    def clean(self):
+        if self.pk is None and self.equipo_intervenido_id and self.momento:
+            existentes = FotoEquipo.objects.filter(
+                equipo_intervenido_id=self.equipo_intervenido_id,
+                momento=self.momento,
+            ).count()
+            if existentes >= MAX_FOTOS_POR_MOMENTO:
+                raise ValidationError(
+                    f'Máximo {MAX_FOTOS_POR_MOMENTO} fotos por etapa.'
+                )

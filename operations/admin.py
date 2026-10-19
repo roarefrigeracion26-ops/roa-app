@@ -10,6 +10,12 @@ class FotoEquipoInline(admin.TabularInline):
     extra = 0
     readonly_fields = ('creada_en',)
 
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return ('imagen', 'creada_en') if obj else ('creada_en',)
+
 
 class EquipoIntervenidoInline(admin.TabularInline):
     model = EquipoIntervenido
@@ -46,6 +52,12 @@ class FotoEquipoAdmin(admin.ModelAdmin):
     list_filter = ('momento',)
     search_fields = ('equipo_intervenido__nombre_equipo', 'equipo_intervenido__orden__radicado')
     readonly_fields = ('creada_en',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return ('imagen', 'creada_en') if obj else ('creada_en',)
 
 
 @admin.register(MedicionUCA)

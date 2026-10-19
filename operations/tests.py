@@ -1,11 +1,16 @@
 import io
 import os
 import tempfile
+import threading
 from datetime import date
+from unittest import skipUnless
 from unittest.mock import patch
 
+from django.contrib.admin.sites import AdminSite
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.db import connection, connections
+from django.test import Client, RequestFactory, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -97,6 +102,27 @@ class FotosViewsTests(TestCase):
             )
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
         self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei, momento='ANTES').count(), MAX_FOTOS_POR_MOMENTO)
+
+    def test_limite_no_se_excede_con_multiples_archivos(self):
+        self._crear_foto(self.ei, MomentoFoto.ANTES)
+        archivos = [imagen_subida(f'{i}.jpg') for i in range(5)]
+        self.client.post(self.url_subir(), {'fotos': archivos})
+        self.assertLessEqual(
+            FotoEquipo.objects.filter(
+                equipo_intervenido=self.ei, momento=MomentoFoto.ANTES,
+            ).count(),
+            MAX_FOTOS_POR_MOMENTO,
+        )
+
+    def test_clean_rechaza_crear_cuando_la_etapa_esta_llena(self):
+        for i in range(MAX_FOTOS_POR_MOMENTO):
+            self._crear_foto(self.ei, MomentoFoto.ANTES)
+        foto = FotoEquipo(
+            equipo_intervenido=self.ei, momento=MomentoFoto.ANTES,
+            imagen=imagen_subida('nueva.jpg'),
+        )
+        with self.assertRaisesMessage(ValidationError, 'Máximo'):
+            foto.full_clean()
 
     def test_rechaza_archivo_invalido(self):
         archivo = SimpleUploadedFile('nota.txt', b'no imagen', content_type='text/plain')
@@ -411,3 +437,147 @@ class FotosViewsTests(TestCase):
         ids = list(FotoEquipo.objects.filter(equipo_intervenido=self.ei)
                    .values_list('pk', flat=True))
         self.assertEqual(ids, sorted([f1.pk, f2.pk]))
+
+
+@override_settings(
+    MEDIA_ROOT=tempfile.mkdtemp(prefix='roa-test-media-admin-'),
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+    STORAGES={
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    },
+)
+class AdminFotosTests(TestCase):
+    def setUp(self):
+        self.admin = Tecnico.objects.create_superuser(
+            username='admin', email='admin@example.com', password='clave123',
+        )
+        self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
+        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.equipo = EquipoAA.objects.create(
+            cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA',
+        )
+        self.orden = OrdenServicio.objects.create(
+            equipo=self.equipo, cliente=self.cliente, tecnico=self.tecnico,
+            tipo='MC', radicado='MC0001', cliente_nombre='Tienda Uno',
+            fecha=date.today(), hora_inicio=timezone.now(),
+        )
+        self.ei = EquipoIntervenido.objects.create(orden=self.orden, nombre_equipo='UCA 1')
+        request = RequestFactory().get('/admin/')
+        request.user = self.admin
+        self.request = request
+        self.site = AdminSite()
+
+    def _crear_foto(self, momento=MomentoFoto.ANTES):
+        return FotoEquipo.objects.create(
+            equipo_intervenido=self.ei, momento=momento,
+            imagen=imagen_subida(f'{momento}.jpg'),
+        )
+
+    def test_admin_standalone_no_permite_agregar(self):
+        from operations.admin import FotoEquipoAdmin
+
+        admin_fotos = FotoEquipoAdmin(FotoEquipo, self.site)
+        self.assertFalse(admin_fotos.has_add_permission(self.request))
+
+    def test_inline_no_permite_agregar(self):
+        from operations.admin import FotoEquipoInline
+
+        inline = FotoEquipoInline(FotoEquipo, self.site)
+        self.assertFalse(inline.has_add_permission(self.request, None))
+        self.assertFalse(inline.has_add_permission(self.request, obj=self.ei))
+
+    def test_admin_y_inline_marcan_imagen_readonly_al_editar(self):
+        from operations.admin import FotoEquipoAdmin, FotoEquipoInline
+
+        foto = self._crear_foto()
+        admin_fotos = FotoEquipoAdmin(FotoEquipo, self.site)
+        inline = FotoEquipoInline(FotoEquipo, self.site)
+
+        campos_admin = admin_fotos.get_readonly_fields(self.request, foto)
+        campos_inline = inline.get_readonly_fields(self.request, foto)
+        self.assertIn('imagen', campos_admin)
+        self.assertIn('creada_en', campos_admin)
+        self.assertIn('imagen', campos_inline)
+        self.assertIn('creada_en', campos_inline)
+
+    def test_borrar_desde_admin_elimina_el_archivo(self):
+        self.client.force_login(self.admin)
+        foto = self._crear_foto()
+        nombre = foto.imagen.name
+        storage = foto.imagen.storage
+        url = reverse('admin:operations_fotoequipo_delete', args=[foto.pk])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            respuesta = self.client.post(url, {'post': 'yes'})
+
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(FotoEquipo.objects.filter(pk=foto.pk).exists())
+        self.assertFalse(storage.exists(nombre))
+
+
+@skipUnless(connection.vendor == 'postgresql', 'select_for_update requiere PostgreSQL')
+@override_settings(
+    MEDIA_ROOT=tempfile.mkdtemp(prefix='roa-test-media-concurrente-'),
+    SECURE_SSL_REDIRECT=False,
+    SESSION_COOKIE_SECURE=False,
+    CSRF_COOKIE_SECURE=False,
+    STORAGES={
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    },
+)
+class LimiteConcurrenteTests(TransactionTestCase):
+    def setUp(self):
+        self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
+        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.equipo = EquipoAA.objects.create(
+            cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA',
+        )
+        self.orden = OrdenServicio.objects.create(
+            equipo=self.equipo, cliente=self.cliente, tecnico=self.tecnico,
+            tipo='MC', radicado='MC0001', cliente_nombre='Tienda Uno',
+            fecha=date.today(), hora_inicio=timezone.now(),
+        )
+        self.ei = EquipoIntervenido.objects.create(orden=self.orden, nombre_equipo='UCA 1')
+        FotoEquipo.objects.create(
+            equipo_intervenido=self.ei, momento=MomentoFoto.ANTES,
+            imagen=imagen_subida('existente.jpg'),
+        )
+
+    def test_dos_subidas_concurrentes_no_pasan_de_3(self):
+        url = reverse('operations:subir_fotos', args=[self.orden.pk, self.ei.pk, 'ANTES'])
+        barrera = threading.Barrier(2)
+        errores = []
+
+        def subir(inicio):
+            try:
+                cliente = Client()
+                cliente.force_login(self.tecnico)
+                barrera.wait(timeout=10)
+                respuesta = cliente.post(url, {
+                    'fotos': [imagen_subida(f'hilo-{inicio}-{i}.jpg') for i in range(3)],
+                })
+                if respuesta.status_code != 302:
+                    errores.append(respuesta.status_code)
+            except Exception as error:
+                errores.append(error)
+            finally:
+                connections.close_all()
+
+        hilos = [threading.Thread(target=subir, args=(i,)) for i in range(2)]
+        for hilo in hilos:
+            hilo.start()
+        for hilo in hilos:
+            hilo.join(timeout=30)
+
+        self.assertFalse(any(hilo.is_alive() for hilo in hilos))
+        self.assertEqual(errores, [])
+        self.assertLessEqual(
+            FotoEquipo.objects.filter(
+                equipo_intervenido=self.ei, momento=MomentoFoto.ANTES,
+            ).count(),
+            MAX_FOTOS_POR_MOMENTO,
+        )
