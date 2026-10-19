@@ -128,6 +128,89 @@ class FotosViewsTests(TestCase):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
         self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei).count(), 0)
 
+    def test_subir_foto_ajax_devuelve_json_y_html(self):
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': imagen_subida()}, HTTP_X_REQUESTED_WITH='fetch',
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta['Content-Type'], 'application/json')
+        data = respuesta.json()
+        self.assertTrue(data['ok'])
+        self.assertIn('foto-bloque', data['html'])
+        self.assertIn(f'foto-bloque-{self.ei.pk}-antes', data['html'])
+        self.assertIn('csrfmiddlewaretoken', data['html'])
+        self.assertEqual(data['count'], 1)
+        self.assertEqual(data['max'], MAX_FOTOS_POR_MOMENTO)
+        self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei, momento='ANTES').count(), 1)
+
+    def test_subir_foto_ajax_sin_archivos_devuelve_json_error(self):
+        respuesta = self.client.post(self.url_subir(), {}, HTTP_X_REQUESTED_WITH='fetch')
+        self.assertEqual(respuesta.status_code, 200)
+        data = respuesta.json()
+        self.assertFalse(data['ok'])
+        self.assertEqual(data['count'], 0)
+        self.assertTrue(data['message'])
+
+    def test_subir_foto_ajax_en_maximo_devuelve_json_error(self):
+        for i in range(MAX_FOTOS_POR_MOMENTO):
+            FotoEquipo.objects.create(
+                equipo_intervenido=self.ei, momento='ANTES',
+                imagen=SimpleUploadedFile(f'{i}.jpg', b'x', content_type='image/jpeg'),
+            )
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': imagen_subida()}, HTTP_X_REQUESTED_WITH='fetch',
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        data = respuesta.json()
+        self.assertFalse(data['ok'])
+        self.assertEqual(data['count'], MAX_FOTOS_POR_MOMENTO)
+        self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei, momento='ANTES').count(), MAX_FOTOS_POR_MOMENTO)
+
+    def test_subir_foto_ajax_archivo_invalido_devuelve_json_error(self):
+        archivo = SimpleUploadedFile('nota.txt', b'no imagen', content_type='text/plain')
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': [archivo]}, HTTP_X_REQUESTED_WITH='fetch',
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        data = respuesta.json()
+        self.assertFalse(data['ok'])
+        self.assertEqual(data['count'], 0)
+        self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei).count(), 0)
+
+    def test_subir_foto_sin_header_sigue_redirigiendo(self):
+        respuesta = self.client.post(self.url_subir(), {'fotos': imagen_subida()})
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei).count(), 1)
+
+    def test_eliminar_foto_ajax_devuelve_json(self):
+        self.client.post(self.url_subir(), {'fotos': imagen_subida()})
+        foto = FotoEquipo.objects.get(equipo_intervenido=self.ei)
+        respuesta = self.client.post(self.url_eliminar(foto), HTTP_X_REQUESTED_WITH='fetch')
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta['Content-Type'], 'application/json')
+        data = respuesta.json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['count'], 0)
+        self.assertEqual(data['max'], MAX_FOTOS_POR_MOMENTO)
+        self.assertIn(f'foto-bloque-{self.ei.pk}-antes', data['html'])
+        self.assertIn('csrfmiddlewaretoken', data['html'])
+        self.assertFalse(FotoEquipo.objects.filter(pk=foto.pk).exists())
+
+    def test_eliminar_foto_sin_header_sigue_redirigiendo(self):
+        self.client.post(self.url_subir(), {'fotos': imagen_subida()})
+        foto = FotoEquipo.objects.get(equipo_intervenido=self.ei)
+        respuesta = self.client.post(self.url_eliminar(foto))
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(FotoEquipo.objects.filter(pk=foto.pk).exists())
+
+    def test_formulario_tiene_contenedor_estable_y_forms_de_fotos(self):
+        self.client.post(self.url_subir(), {'fotos': imagen_subida()})
+        respuesta = self.client.get(reverse('operations:formulario_orden', args=[self.orden.pk]))
+        html = respuesta.content.decode()
+        self.assertIn('id="equipos-intervenidos"', html)
+        self.assertIn('data-foto-bloque', html)
+        self.assertIn('foto-delete-form', html)
+
     def test_formulario_renderiza_bloques_de_fotos(self):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
         respuesta = self.client.get(reverse('operations:formulario_orden', args=[self.orden.pk]))

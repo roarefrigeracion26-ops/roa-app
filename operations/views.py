@@ -4,8 +4,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError
 from django.views import View
 from django.utils import timezone
-from django.http import HttpResponse
-from django.template.loader import get_template
+from django.http import HttpResponse, JsonResponse
+from django.template.loader import get_template, render_to_string
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from xhtml2pdf import pisa
@@ -581,37 +581,83 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
 
 
 # ─────────────────────────────────────────────────────────
+# Helpers de fotos: respuesta JSON para fetches, HTML del bloque reutilizable
+# ─────────────────────────────────────────────────────────
+def _es_fetch(request):
+    """True solo si la petición viene del fetch del formulario (X-Requested-With)."""
+    return request.headers.get('X-Requested-With') == 'fetch'
+
+
+def _render_bloque_fotos(request, orden, ei, momento):
+    """Renderiza el parcial de fotos de un equipo y una etapa (conserva el csrf)."""
+    fotos = [f for f in ei.fotos.all() if f.momento == momento]
+    etapa = 'antes' if momento == MomentoFoto.ANTES else 'despues'
+    return render_to_string('operations/_bloque_fotos.html', {
+        'orden': orden, 'ei': ei, 'momento': momento,
+        'titulo': dict(MomentoFoto.choices)[momento], 'etapa': etapa,
+        'fotos': fotos, 'count': len(fotos), 'max_fotos': MAX_FOTOS_POR_MOMENTO,
+    }, request=request)
+
+
+def _json_error(message):
+    """Respuesta JSON para errores que no pueden renderizar un bloque concreto."""
+    return JsonResponse({
+        'ok': False, 'message': message, 'count': 0,
+        'max': MAX_FOTOS_POR_MOMENTO, 'html': '',
+    })
+
+
+# ─────────────────────────────────────────────────────────
 # SubirFotosView: agrega fotos (Antes/Después) a un equipo intervenido
 # ─────────────────────────────────────────────────────────
 class SubirFotosView(LoginRequiredMixin, View):
     """POST: agrega hasta 3 fotos por etapa (Antes/Después) a un equipo."""
+
+    def _respuesta(self, request, orden, ei, momento, ok, message):
+        if _es_fetch(request):
+            fotos = ei.fotos.filter(momento=momento)
+            return JsonResponse({
+                'ok': ok, 'message': message,
+                'count': fotos.count(), 'max': MAX_FOTOS_POR_MOMENTO,
+                'html': _render_bloque_fotos(request, orden, ei, momento),
+            })
+        (messages.success if ok else messages.error)(request, message)
+        return redirect('operations:formulario_orden', orden_id=orden.pk)
 
     def post(self, request, orden_id, equipo_id, momento):
         orden = get_object_or_404(OrdenServicio, pk=orden_id)
         if orden.tecnico != request.user and not request.user.is_supervisor:
             return HttpResponse('No autorizado', status=403)
         if orden.estado != EstadoOrden.ABIERTO:
-            messages.error(request, 'No se pueden agregar fotos a una orden cerrada.')
+            aviso = 'No se pueden agregar fotos a una orden cerrada.'
+            if _es_fetch(request):
+                return _json_error(aviso)
+            messages.error(request, aviso)
             return redirect('operations:formulario_orden', orden_id=orden.pk)
         if momento not in MomentoFoto.values:
-            messages.error(request, 'Etapa de foto inválida.')
+            aviso = 'Etapa de foto inválida.'
+            if _es_fetch(request):
+                return _json_error(aviso)
+            messages.error(request, aviso)
             return redirect('operations:formulario_orden', orden_id=orden.pk)
 
         ei = get_object_or_404(EquipoIntervenido, pk=equipo_id, orden=orden)
         archivos = request.FILES.getlist('fotos')
         if not archivos:
-            messages.error(request, 'No seleccionaste ninguna foto.')
-            return redirect('operations:formulario_orden', orden_id=orden.pk)
+            return self._respuesta(request, orden, ei, momento, False, 'No seleccionaste ninguna foto.')
 
         existentes = ei.fotos.filter(momento=momento).count()
         if existentes >= MAX_FOTOS_POR_MOMENTO:
-            messages.warning(request, 'Máximo 3 fotos por etapa. Elimina una para agregar otra.')
-            return redirect('operations:formulario_orden', orden_id=orden.pk)
+            return self._respuesta(
+                request, orden, ei, momento, False,
+                'Máximo 3 fotos por etapa. Elimina una para agregar otra.',
+            )
 
         agregadas = 0
+        errores = []
         for archivo in archivos:
             if existentes + agregadas >= MAX_FOTOS_POR_MOMENTO:
-                messages.warning(request, 'Máximo 3 fotos por etapa. Elimina una para agregar otra.')
+                errores.append('Máximo 3 fotos por etapa. Elimina una para agregar otra.')
                 break
             foto = None
             try:
@@ -621,19 +667,24 @@ class SubirFotosView(LoginRequiredMixin, View):
                 foto.save()
                 agregadas += 1
             except ValidationError as error:
-                mensaje = error.messages[0] if error.messages else 'Imagen inválida.'
-                messages.error(request, mensaje)
+                errores.append(error.messages[0] if error.messages else 'Imagen inválida.')
             except Exception:
                 if foto is not None and foto.imagen and foto.imagen.name:
                     try:
                         foto.imagen.delete(save=False)
                     except Exception:
                         pass
-                messages.error(request, 'No se pudo guardar la foto. Intenta de nuevo.')
+                errores.append('No se pudo guardar la foto. Intenta de nuevo.')
 
         if agregadas:
-            messages.success(request, f'Se agregaron {agregadas} foto(s) a la etapa {dict(MomentoFoto.choices)[momento]}.')
-        return redirect('operations:formulario_orden', orden_id=orden.pk)
+            message = f'Se agregaron {agregadas} foto(s) a la etapa {dict(MomentoFoto.choices)[momento]}.'
+            if errores:
+                message = f'{message} {errores[0]}'
+            return self._respuesta(request, orden, ei, momento, True, message)
+        return self._respuesta(
+            request, orden, ei, momento, False,
+            errores[0] if errores else 'No se pudo guardar la foto. Intenta de nuevo.',
+        )
 
 
 # ─────────────────────────────────────────────────────────
@@ -647,10 +698,22 @@ class EliminarFotoView(LoginRequiredMixin, View):
         if orden.tecnico != request.user and not request.user.is_supervisor:
             return HttpResponse('No autorizado', status=403)
         if orden.estado != EstadoOrden.ABIERTO:
-            messages.error(request, 'No se pueden eliminar fotos de una orden cerrada.')
+            aviso = 'No se pueden eliminar fotos de una orden cerrada.'
+            if _es_fetch(request):
+                return _json_error(aviso)
+            messages.error(request, aviso)
             return redirect('operations:formulario_orden', orden_id=orden.pk)
         foto = get_object_or_404(FotoEquipo, pk=foto_id, equipo_intervenido__orden=orden)
+        ei = foto.equipo_intervenido
+        momento = foto.momento
         foto.delete()
+        if _es_fetch(request):
+            return JsonResponse({
+                'ok': True, 'message': 'Foto eliminada.',
+                'count': ei.fotos.filter(momento=momento).count(),
+                'max': MAX_FOTOS_POR_MOMENTO,
+                'html': _render_bloque_fotos(request, orden, ei, momento),
+            })
         messages.success(request, 'Foto eliminada.')
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 

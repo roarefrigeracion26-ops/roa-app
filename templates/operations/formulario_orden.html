@@ -196,7 +196,7 @@
             <i class="bi bi-plus-circle me-1"></i>Agregar
         </button>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body p-0" id="equipos-intervenidos">
         <div class="collapse" id="formAgregar">
             <form method="post" action="{% url 'operations:agregar_equipo_antes' orden.pk %}" id="form-agregar-equipo">
                 {% csrf_token %}
@@ -657,6 +657,20 @@
         if (aviso) aviso.textContent = 'Listo para subir.';
     }
 
+    function mostrarMensajeFoto(bloque, form, texto) {
+        const aviso = (form && form.querySelector('.foto-aviso')) ||
+                      (bloque && bloque.querySelector('.foto-aviso'));
+        if (aviso) { aviso.textContent = texto; return; }
+        if (!bloque) return;
+        let msg = bloque.querySelector('.foto-mensaje');
+        if (!msg) {
+            msg = document.createElement('div');
+            msg.className = 'foto-mensaje small text-danger px-2 pb-2';
+            bloque.appendChild(msg);
+        }
+        msg.textContent = texto;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const fa = document.getElementById('form-agregar-equipo');
         if (fa) fa.addEventListener('submit', function (e) {
@@ -681,13 +695,9 @@
         const ff = document.getElementById('form-finalizar');
         if (ff) ff.addEventListener('submit', function () { inyectarActividades(this); });
 
-        // Optimizar fotos en el navegador antes de subirlas
-        document.querySelectorAll('.foto-input').forEach(input => {
-            input.addEventListener('change', () => optimizarEntrada(input));
-        });
-
-        // Deshabilitar botón submit en todos los forms del formulario
-        document.querySelectorAll('form').forEach(f => {
+        // Deshabilitar botón submit en los forms que recargan la página.
+        // Los de fotos se excluyen: su fetch se maneja aparte y no debe perder mediciones.
+        document.querySelectorAll('form:not(.foto-form):not(.foto-delete-form)').forEach(f => {
             f.addEventListener('submit', function () {
                 const btn = this.querySelector('button[type="submit"]');
                 if (btn) btn.disabled = true;
@@ -703,8 +713,48 @@
         window.addEventListener('beforeunload', e => {
             if (dirty) { e.preventDefault(); e.returnValue = ''; }
         });
-        document.querySelectorAll('form').forEach(f => {
+        document.querySelectorAll('form:not(.foto-form):not(.foto-delete-form)').forEach(f => {
             f.addEventListener('submit', () => dirty = false);
+        });
+
+        // Optimizar fotos al seleccionarlas (delegado: sobrevive al reemplazo de HTML)
+        document.addEventListener('change', e => {
+            if (e.target.matches('.foto-input')) optimizarEntrada(e.target);
+        });
+
+        // Subir/borrar fotos vía fetch sobre un contenedor estable
+        const zonaFotos = document.getElementById('equipos-intervenidos') || document.body;
+        zonaFotos.addEventListener('submit', async e => {
+            const form = e.target;
+            if (!form.matches('.foto-form, .foto-delete-form')) return;
+            if (e.defaultPrevented) return; // confirm() cancelado en el form de borrado
+            e.preventDefault();
+            const bloque = form.closest('[data-foto-bloque]');
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) btn.disabled = true;
+            try {
+                const resp = await fetch(form.action, {
+                    method: 'POST', body: new FormData(form),
+                    headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin',
+                });
+                const tipo = resp.headers.get('content-type') || '';
+                if (!tipo.includes('application/json')) {
+                    const texto = resp.ok ? 'Tu sesión expiró. Recarga la página.'
+                                          : 'No se pudo completar la acción. Recarga la página.';
+                    mostrarMensajeFoto(bloque, form, texto);
+                    return;
+                }
+                const data = await resp.json();
+                if (data.ok && data.html && bloque) {
+                    bloque.outerHTML = data.html;
+                } else if (data.message) {
+                    mostrarMensajeFoto(bloque, form, data.message);
+                }
+            } catch (err) {
+                mostrarMensajeFoto(bloque, form, 'Error de red. Intenta de nuevo.');
+            } finally {
+                if (document.body.contains(btn)) btn.disabled = false;
+            }
         });
     });
 </script>

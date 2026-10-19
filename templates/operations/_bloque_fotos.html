@@ -11,7 +11,7 @@ Contexto esperado (vía {% with %}):
   count        cantidad actual (fotos|length)
   max_fotos    máximo permitido (heredado)
 {% endcomment %}
-<div class="foto-bloque h-100 w-100">
+<div class="foto-bloque h-100 w-100" id="foto-bloque-{{ ei.pk }}-{{ etapa }}" data-foto-bloque>
     <div class="foto-bloque-head foto-bloque-head--{{ etapa }}">
         <span><i class="bi {% if etapa == 'antes' %}bi-camera{% else %}bi-check2-circle{% endif %} me-1"></i>{{ titulo }}</span>
         <span class="badge bg-light text-dark">{{ count }}/{{ max_fotos }}</span>
@@ -22,7 +22,8 @@ Contexto esperado (vía {% with %}):
             {% for foto in fotos %}
             <div class="foto-thumb">
                 <img src="{{ foto.imagen.url }}" alt="{{ titulo }} {{ forloop.counter }}">
-                <form method="post" action="{% url 'operations:eliminar_foto' orden.pk foto.pk %}" class="m-0"
+                <form method="post" action="{% url 'operations:eliminar_foto' orden.pk foto.pk %}"
+                      class="m-0 foto-delete-form"
                       onsubmit="return confirm('¿Eliminar esta foto?');">
                     {% csrf_token %}
                     <button type="submit" class="foto-del" title="Eliminar foto" aria-label="Eliminar foto">&times;</button>
