@@ -439,6 +439,57 @@ class FotosViewsTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertTrue(respuesta.content.startswith(b'%PDF-'))
 
+    def test_pdf_incrusta_todas_las_fotos(self):
+        from pypdf import PdfReader
+        from operations.views import PDFOrdenView
+
+        def contar_imagenes(respuesta):
+            lector = PdfReader(io.BytesIO(respuesta.content))
+            return sum(len(pagina.images) for pagina in lector.pages)
+
+        # Referencia: la plantilla PDF incluye el logo estatico de ROA, por lo
+        # que incluso un PDF sin fotos incrusta imagenes. Se mide el total con
+        # cero fotos y se comprueba que el incremento sea igual al numero de
+        # fotos; no se fija un total absoluto porque depende de elementos
+        # estaticos (logo) ajenos a las fotos.
+        sin_fotos = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+        self.assertEqual(sin_fotos.status_code, 200)
+        total_sin_fotos = contar_imagenes(sin_fotos)
+
+        # Colores distintos: xhtml2pdf deduplica imagenes con bytes identicos
+        # en un mismo XObject, lo que ocultaria fotos logicamente distintas.
+        colores = [(200, 10, 10), (10, 200, 10), (10, 10, 200)]
+        for indice, color in enumerate(colores):
+            momento = MomentoFoto.ANTES if indice < 2 else MomentoFoto.DESPUES
+            FotoEquipo.objects.create(
+                equipo_intervenido=self.ei,
+                momento=momento,
+                imagen=imagen_subida(f'incrusta-{indice}.jpg', color=color),
+            )
+
+        respuesta = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
+        total = contar_imagenes(respuesta)
+        self.assertEqual(total - total_sin_fotos, len(colores))
+
+    def test_pdf_sin_fotos_no_falla_ni_incluye_registro(self):
+        from pypdf import PdfReader
+        from operations.views import PDFOrdenView
+
+        respuesta = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
+        lector = PdfReader(io.BytesIO(respuesta.content))
+        self.assertGreaterEqual(len(lector.pages), 1)
+        # Sin fotos solo debe quedar el logo estatico del encabezado.
+        total = sum(len(pagina.images) for pagina in lector.pages)
+        self.assertGreaterEqual(total, 1)
+        texto = '\n'.join(pagina.extract_text() or '' for pagina in lector.pages)
+        self.assertNotIn('REGISTRO FOTOGR', texto)
+
     def test_meta_ordering_estable(self):
         self.assertEqual(FotoEquipo._meta.ordering, ['creada_en', 'id'])
 
