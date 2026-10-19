@@ -326,12 +326,15 @@ class FotoEquipo(models.Model):
         return f'{self.get_momento_display()} - {self.equipo_intervenido}'
 
     def clean(self):
-        if self.pk is None and self.equipo_intervenido_id and self.momento:
-            existentes = FotoEquipo.objects.filter(
-                equipo_intervenido_id=self.equipo_intervenido_id,
-                momento=self.momento,
-            ).count()
-            if existentes >= MAX_FOTOS_POR_MOMENTO:
-                raise ValidationError(
-                    f'Máximo {MAX_FOTOS_POR_MOMENTO} fotos por etapa.'
-                )
+        if not self.equipo_intervenido_id or not self.momento:
+            return
+        existentes = FotoEquipo.objects.filter(
+            equipo_intervenido_id=self.equipo_intervenido_id,
+            momento=self.momento,
+        )
+        if self.pk:
+            existentes = existentes.exclude(pk=self.pk)
+        if existentes.count() >= MAX_FOTOS_POR_MOMENTO:
+            raise ValidationError(
+                f'Máximo {MAX_FOTOS_POR_MOMENTO} fotos por etapa.'
+            )

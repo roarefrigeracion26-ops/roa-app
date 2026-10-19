@@ -124,6 +124,24 @@ class FotosViewsTests(TestCase):
         with self.assertRaisesMessage(ValidationError, 'Máximo'):
             foto.full_clean()
 
+    def test_clean_rechaza_mover_foto_a_etapa_llena(self):
+        for i in range(MAX_FOTOS_POR_MOMENTO):
+            self._crear_foto(self.ei, MomentoFoto.DESPUES)
+        foto = self._crear_foto(self.ei, MomentoFoto.ANTES)
+
+        foto.momento = MomentoFoto.DESPUES
+        with self.assertRaisesMessage(ValidationError, 'Máximo'):
+            foto.full_clean()
+
+    def test_clean_permite_mover_foto_si_hay_espacio(self):
+        for i in range(MAX_FOTOS_POR_MOMENTO - 1):
+            self._crear_foto(self.ei, MomentoFoto.DESPUES)
+        foto = self._crear_foto(self.ei, MomentoFoto.ANTES)
+
+        foto.momento = MomentoFoto.DESPUES
+        foto.full_clean()
+        self.assertEqual(foto.momento, MomentoFoto.DESPUES)
+
     def test_rechaza_archivo_invalido(self):
         archivo = SimpleUploadedFile('nota.txt', b'no imagen', content_type='text/plain')
         self.client.post(self.url_subir(), {'fotos': [archivo]})
