@@ -191,6 +191,18 @@ class FotosViewsTests(TestCase):
         self.assertFalse(FotoEquipo.objects.filter(pk=foto.pk).exists())
         self.assertFalse(storage.exists(nombre))
 
+    def test_registra_warning_si_el_storage_falla_al_borrar(self):
+        foto = self._crear_foto(self.ei, MomentoFoto.ANTES)
+        storage = foto.imagen.storage
+
+        with patch.object(storage, 'delete', side_effect=OSError('disco caido')):
+            with self.assertLogs('operations.signals', level='WARNING') as registro:
+                with self.captureOnCommitCallbacks(execute=True):
+                    foto.delete()
+
+        self.assertFalse(FotoEquipo.objects.filter(pk=foto.pk).exists())
+        self.assertTrue(any('disco caido' in linea for linea in registro.output))
+
     def test_orden_cerrada_no_permite_subir(self):
         self.orden.estado = EstadoOrden.CERRADO
         self.orden.save(update_fields=['estado'])
