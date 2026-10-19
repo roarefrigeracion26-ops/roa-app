@@ -1,6 +1,8 @@
 import io
+import os
 import tempfile
 from datetime import date
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -284,6 +286,84 @@ class FotosViewsTests(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(respuesta['Content-Type'], 'application/pdf')
         self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
+    def _request(self):
+        from django.test import RequestFactory
+        request = RequestFactory().get('/')
+        request.user = self.tecnico
+        return request
+
+    def _crear_foto(self, ei, momento):
+        return FotoEquipo.objects.create(
+            equipo_intervenido=ei,
+            momento=momento,
+            imagen=imagen_subida(f'{momento}.jpg'),
+        )
+
+    def test_pdf_falla_si_una_foto_no_carga(self):
+        from operations.views import PDFOrdenView
+
+        self._crear_foto(self.ei, MomentoFoto.ANTES)
+
+        with patch('operations.views.urlopen', side_effect=OSError('boom')) as descarga, \
+                patch('xhtml2pdf.files.NetworkFileUri.get_data', return_value=None), \
+                patch('django.core.files.storage.FileSystemStorage.url',
+                      return_value='https://r2.example/foto.jpg'), \
+                patch('django.contrib.staticfiles.storage.StaticFilesStorage.url',
+                      return_value='static/image/roa-logo.jpeg'), \
+                self.assertLogs('operations.views', level='ERROR') as registro:
+            respuesta = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+
+        self.assertEqual(respuesta.status_code, 500)
+        html = respuesta.content.decode()
+        self.assertIn('Reintentar', html)
+        self.assertIn('No se pudo generar el PDF', html)
+        self.assertTrue(descarga.called)
+        self.assertEqual(descarga.call_args.kwargs['timeout'], 20)
+        self.assertTrue(any('no se pudo descargar' in linea for linea in registro.output))
+
+    def test_pdf_descarga_fotos_remotas_y_limpia_temporales(self):
+        from operations.views import PDFOrdenView
+
+        self._crear_foto(self.ei, MomentoFoto.ANTES)
+
+        buffer = io.BytesIO()
+        Image.new('RGB', (20, 20), (10, 20, 30)).save(buffer, format='JPEG')
+        contenido = buffer.getvalue()
+
+        class Respuesta:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return contenido
+
+        creados = []
+        original = tempfile.NamedTemporaryFile
+
+        def named_temporary_file(*args, **kwargs):
+            archivo = original(*args, **kwargs)
+            creados.append(archivo.name)
+            return archivo
+
+        with patch('operations.views.urlopen', return_value=Respuesta()) as descarga, \
+                patch('operations.views.tempfile.NamedTemporaryFile',
+                      side_effect=named_temporary_file), \
+                patch('django.core.files.storage.FileSystemStorage.url',
+                      return_value='https://r2.example/foto.jpg'), \
+                patch('django.contrib.staticfiles.storage.StaticFilesStorage.url',
+                      return_value='static/image/roa-logo.jpeg'):
+            respuesta = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+        self.assertEqual(descarga.call_args.kwargs['timeout'], 20)
+        self.assertTrue(creados)
+        for ruta in creados:
+            self.assertFalse(os.path.exists(ruta))
 
     def test_meta_ordering_estable(self):
         self.assertEqual(FotoEquipo._meta.ordering, ['creada_en', 'id'])

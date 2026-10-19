@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}No se pudo generar el PDF{% endblock %}
+{% block content %}
+<div class="container py-5 text-center">
+  <h1 class="h4">No se pudo generar el PDF</h1>
+  <p class="text-muted">Algunas fotos no se pudieron incluir ({{ faltantes }}). Revisa tu conexión e inténtalo de nuevo.</p>
+  <a class="btn btn-roa-primary" href="{% url 'operations:pdf_orden' orden.pk %}">Reintentar</a>
+</div>
+{% endblock %}

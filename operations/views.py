@@ -10,9 +10,16 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from xhtml2pdf import pisa
 from django.contrib import messages
+import html as _html
 import io
 import json
+import logging
+import os
+import tempfile
+from urllib.request import Request, urlopen
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 SPANISH_MONTHS = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
@@ -48,44 +55,55 @@ from .forms import (
 # ─────────────────────────────────────────────────────────
 # Helper: xhtml2pdf link callback
 # ─────────────────────────────────────────────────────────
-def link_callback(uri, rel):
-    import os
-    import tempfile
-    from urllib.request import urlopen, Request
+def _make_link_callback(state):
+    """Devuelve un link_callback de xhtml2pdf que registra el estado de cada foto.
 
-    s_url = settings.STATIC_URL
-    m_url = getattr(settings, 'MEDIA_URL', '/media/')
-    path = None
+    ``state`` es un diccionario con las claves ``ok`` (URIs descargadas),
+    ``fallos`` (URI -> error) y ``temporales`` (rutas a limpiar por la vista).
+    """
+    def link_callback(uri, rel):
+        s_url = settings.STATIC_URL
+        m_url = getattr(settings, 'MEDIA_URL', '/media/')
+        path = None
 
-    # Imágenes remotas (fotos en R2 con URL firmada): se descargan a un temporal.
-    if uri.startswith(('http://', 'https://')):
-        try:
-            peticion = Request(uri, headers={'User-Agent': 'roa-app/1.0'})
-            with urlopen(peticion, timeout=20) as respuesta:
-                contenido = respuesta.read()
-            sufijo = os.path.splitext(uri.split('?')[0])[1] or '.jpg'
-            temporal = tempfile.NamedTemporaryFile(delete=False, suffix=sufijo)
-            temporal.write(contenido)
-            temporal.close()
-            return temporal.name
-        except Exception:
-            return uri
+        # Imágenes remotas (fotos en R2 con URL firmada): se descargan a un temporal.
+        if uri.startswith(('http://', 'https://')):
+            limpio = _html.unescape(uri)
+            try:
+                peticion = Request(limpio, headers={'User-Agent': 'roa-app/1.0'})
+                with urlopen(peticion, timeout=20) as respuesta:
+                    contenido = respuesta.read()
+                sufijo = os.path.splitext(limpio.split('?')[0])[1] or '.jpg'
+                temporal = tempfile.NamedTemporaryFile(delete=False, suffix=sufijo)
+                state['temporales'].append(temporal.name)
+                try:
+                    temporal.write(contenido)
+                finally:
+                    temporal.close()
+                state['ok'].add(uri)
+                return temporal.name
+            except Exception as error:
+                state['fallos'][uri] = str(error)
+                logger.error('link_callback: no se pudo descargar %s: %s', limpio, error)
+                return uri
 
-    if uri.startswith(s_url):
-        relative_path = uri.replace(s_url, '', 1).lstrip('/')
-        for d in getattr(settings, 'STATICFILES_DIRS', []):
-            trial = os.path.join(d, relative_path)
-            if os.path.exists(trial):
-                path = trial
-                break
-        if not path:
-            path = os.path.join(settings.STATIC_ROOT, relative_path)
-    elif m_url and uri.startswith(m_url):
-        relative_path = uri.replace(m_url, '', 1).lstrip('/')
-        path = os.path.join(settings.MEDIA_ROOT, relative_path)
-    if path and os.path.isfile(path):
-        return path
-    return uri
+        if uri.startswith(s_url):
+            relative_path = uri.replace(s_url, '', 1).lstrip('/')
+            for d in getattr(settings, 'STATICFILES_DIRS', []):
+                trial = os.path.join(d, relative_path)
+                if os.path.exists(trial):
+                    path = trial
+                    break
+            if not path:
+                path = os.path.join(settings.STATIC_ROOT, relative_path)
+        elif m_url and uri.startswith(m_url):
+            relative_path = uri.replace(m_url, '', 1).lstrip('/')
+            path = os.path.join(settings.MEDIA_ROOT, relative_path)
+        if path and os.path.isfile(path):
+            return path
+        return uri
+
+    return link_callback
 
 
 # ─────────────────────────────────────────────────────────
@@ -817,13 +835,35 @@ class PDFOrdenView(LoginRequiredMixin, View):
         template = get_template('operations/reporte_pdf_aa.html')
         html = template.render(context)
 
+        fotos = [f for ei in equipos_intervenidos for f in (ei.fotos_antes + ei.fotos_despues)]
+        remotas = sum(1 for f in fotos if f.imagen.url.startswith(('http://', 'https://')))
+        state = {'ok': set(), 'fallos': {}, 'temporales': []}
+
         result = io.BytesIO()
-        pdf = pisa.pisaDocument(io.BytesIO(html.encode('UTF-8')), result, link_callback=link_callback)
+        try:
+            pdf = pisa.pisaDocument(
+                io.BytesIO(html.encode('UTF-8')), result,
+                link_callback=_make_link_callback(state),
+            )
+        finally:
+            for ruta in state['temporales']:
+                try:
+                    os.remove(ruta)
+                except OSError:
+                    pass
 
-        if not pdf.err:
-            response = HttpResponse(result.getvalue(), content_type='application/pdf')
-            filename = f"FT-GM-41_{orden.radicado}_{context['fecha'].strftime('%Y%m%d')}.pdf"
-            response['Content-Disposition'] = f'inline; filename="{filename}"'
-            return response
+        if state['fallos'] or len(state['ok']) < remotas or pdf.err:
+            logger.error(
+                'PDF orden %s: fallos=%s ok=%s esperadas=%s err=%s',
+                orden.pk, state['fallos'], len(state['ok']), remotas, pdf.err,
+            )
+            return render(request, 'operations/pdf_error.html', {
+                'orden': orden,
+                'faltantes': max(remotas - len(state['ok']), 0),
+                'detalle': list(state['fallos'].keys()),
+            }, status=500)
 
-        return HttpResponse('Error al generar PDF', status=500)
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        filename = f"FT-GM-41_{orden.radicado}_{context['fecha'].strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
