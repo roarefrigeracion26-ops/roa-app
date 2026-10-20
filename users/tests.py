@@ -64,3 +64,8 @@ class LandingTests(TestCase):
     def test_login_post_redirige_por_rol(self):
         respuesta = self.client.post('/ingresar/', {'username': 'tec', 'password': 'clave123'})
         self.assertRedirects(respuesta, reverse('inventory:clientes'))
+
+    def test_login_tiene_volver_al_inicio(self):
+        respuesta = self.client.get('/ingresar/')
+        self.assertContains(respuesta, reverse('landing'))
+        self.assertContains(respuesta, 'Volver al inicio')
