@@ -1,0 +1,284 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROA Refrigeración | Aire acondicionado y refrigeración en Barranquilla</title>
+  <meta name="description" content="Montaje, mantenimiento y reparación de sistemas de aire acondicionado y refrigeración para empresas, comercios e industrias en Barranquilla y la Costa Caribe.">
+  <meta name="theme-color" content="#0D2E52">
+  <link rel="icon" type="image/png" href="{% static 'image/favicon.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="{% static 'landing/hero.jpg' %}">
+  <link rel="stylesheet" href="{% static 'landing/landing.css' %}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ROA Refrigeración | Climatización para empresas">
+  <meta property="og:description" content="Instalación, mantenimiento y reparación de aire acondicionado y refrigeración en Barranquilla y la Costa Caribe.">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'landing/hero.jpg' %}">
+  <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}/">
+  <script>document.documentElement.classList.replace('no-js', 'js');</script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HVACBusiness",
+    "name": "ROA Refrigeración",
+    "description": "Instalación, mantenimiento y reparación de sistemas de aire acondicionado y refrigeración para empresas, comercios e industrias.",
+    "url": "{{ request.scheme }}://{{ request.get_host }}/",
+    "image": "{{ request.scheme }}://{{ request.get_host }}{% static 'landing/hero.jpg' %}",
+    "email": "info@roarefrigeracion.com",
+    "telephone": "+57 311 699 1895",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Calle 91 con 39B",
+      "addressLocality": "Barranquilla",
+      "addressCountry": "CO"
+    },
+    "areaServed": "Barranquilla y la Costa Caribe"
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+
+  <div class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="topbar-place">Barranquilla, Colombia</span>
+      <div class="topbar-links">
+        <span class="topbar-status">Atención de emergencias</span>
+        <a href="tel:+5753011758">(5) 301 1758</a>
+        <a class="topbar-email" href="mailto:info@roarefrigeracion.com">info@roarefrigeracion.com</a>
+      </div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="{% url 'landing' %}" aria-label="ROA Refrigeración, ir al inicio">
+        <img src="{% static 'image/roa-logo.jpeg' %}" alt="ROA Refrigeración" width="108" height="60">
+      </a>
+
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="nav-landing">
+        <span class="menu-lines" aria-hidden="true"></span>
+        <span class="sr-only">Abrir menú</span>
+      </button>
+
+      <nav class="nav" id="nav-landing" aria-label="Navegación principal">
+        <a href="#nosotros">Nosotros</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#clientes">Clientes</a>
+        <a href="#contacto">Contacto</a>
+        {% if user.is_authenticated %}
+        <a class="btn btn-blue nav-cta" href="{% if user.is_supervisor %}{% url 'analytics:dashboard' %}{% else %}{% url 'inventory:clientes' %}{% endif %}">Ir al sistema</a>
+        {% else %}
+        <a class="btn btn-blue nav-cta" href="{% url 'users:login' %}">Ingresar</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" style="--hero-image: url('{% static 'landing/hero.jpg' %}')">
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">Refrigeración y climatización</p>
+          <h1>Aire acondicionado y refrigeración para empresas que no pueden parar</h1>
+          <p class="lead">Montaje, mantenimiento y reparación de sistemas de climatización y refrigeración para comercios, industrias y edificios. Un solo equipo para que su operación siga su curso.</p>
+          <div class="hero-actions">
+            <a class="btn btn-gold" href="#servicios">Ver servicios</a>
+            <a class="btn btn-ghost" href="#contacto">Hablar con un asesor</a>
+          </div>
+          <ul class="hero-facts">
+            <li>Montaje e instalación</li>
+            <li>Mantenimiento preventivo</li>
+            <li>Atención de emergencias</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section nosotros" id="nosotros">
+      <div class="wrap split">
+        <div class="split-media reveal">
+          <img src="{% static 'landing/ofrecemos.jpg' %}" alt="Técnico de ROA Refrigeración midiendo la presión de un equipo con manómetros" loading="lazy" width="1200" height="896">
+        </div>
+        <div class="split-copy reveal">
+          <p class="eyebrow">Nosotros</p>
+          <h2>Ofrecemos soluciones, no solo reparaciones</h2>
+          <p class="lead">En ROA Refrigeración diseñamos, instalamos y mantenemos sistemas de aire acondicionado y refrigeración para empresas, comercios e industrias. Nuestro equipo técnico atiende desde el montaje de un equipo nuevo hasta el mantenimiento programado de sistemas en operación.</p>
+          <ul class="checklist">
+            <li>Diagnóstico técnico antes de intervenir</li>
+            <li>Trabajo limpio y seguro en sitio</li>
+            <li>Acompañamiento después del servicio</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section servicios" id="servicios">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow">Servicios</p>
+          <h2>Lo que hacemos</h2>
+          <p class="lead">Cubrimos el ciclo completo del equipo: desde la instalación hasta la reparación y el mantenimiento programado.</p>
+        </div>
+        <ol class="service-list">
+          <li class="service-item reveal">
+            <div class="service-top">
+              <span class="service-num">01</span>
+              <img class="service-icon" src="{% static 'landing/iconos/montaje.png' %}" alt="" width="44" height="44" loading="lazy">
+            </div>
+            <h3>Montaje e instalación</h3>
+            <p>Instalación de equipos de aire acondicionado, sistemas de refrigeración y ventilación para empresas, comercios e industrias.</p>
+          </li>
+          <li class="service-item reveal">
+            <div class="service-top">
+              <span class="service-num">02</span>
+              <img class="service-icon" src="{% static 'landing/iconos/mantenimiento.png' %}" alt="" width="44" height="44" loading="lazy">
+            </div>
+            <h3>Mantenimiento preventivo y correctivo</h3>
+            <p>Planes de mantenimiento programado y atención de fallas para mantener los equipos operando con eficiencia.</p>
+          </li>
+          <li class="service-item reveal">
+            <div class="service-top">
+              <span class="service-num">03</span>
+              <img class="service-icon" src="{% static 'landing/iconos/electricas.png' %}" alt="" width="44" height="44" loading="lazy">
+            </div>
+            <h3>Reparaciones y servicio eléctrico</h3>
+            <p>Diagnóstico, reparación de equipos y solución de fallas eléctricas asociadas a los sistemas de climatización.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section clientes" id="clientes">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow">Clientes</p>
+          <h2>Empresas que confían en nosotros</h2>
+          <p class="lead">Acompañamos operaciones que no pueden detenerse.</p>
+        </div>
+        <div class="logo-grid reveal">
+          <img src="{% static 'landing/clientes/exito.jpg' %}" alt="Almacenes Éxito" loading="lazy" width="150" height="80">
+          <img src="{% static 'landing/clientes/olimpica.jpg' %}" alt="Olímpica" loading="lazy" width="150" height="80">
+          <img src="{% static 'landing/clientes/lasa.jpg' %}" alt="Lasa" loading="lazy" width="150" height="80">
+          <img src="{% static 'landing/clientes/bodytech.jpg' %}" alt="Bodytech" loading="lazy" width="150" height="80">
+          <img src="{% static 'landing/clientes/sao.jpg' %}" alt="Sao" loading="lazy" width="150" height="80">
+        </div>
+      </div>
+    </section>
+
+    <section class="testimonio">
+      <div class="wrap testimonio-inner reveal">
+        <blockquote>Contar con ROA nos permite mantener nuestros equipos operando sin interrupciones. Su respuesta es rápida y su trabajo, impecable.</blockquote>
+        <p class="quote-author"><strong>Jorge Roa</strong><span>Mánager, Olímpica</span></p>
+      </div>
+    </section>
+
+    <section class="section contacto" id="contacto">
+      <div class="wrap split">
+        <div class="split-copy reveal">
+          <p class="eyebrow">Contacto</p>
+          <h2>Hablemos de su próximo proyecto</h2>
+          <p class="lead">Cuéntenos qué equipo necesita instalar, mantener o reparar. Le respondemos con una visita técnica y una propuesta clara.</p>
+          <div class="contact-actions">
+            <a class="btn btn-blue" href="tel:+573116991895">Llamar ahora</a>
+            <a class="btn btn-outline" href="mailto:info@roarefrigeracion.com">Escribir un correo</a>
+          </div>
+        </div>
+        <div class="contact-card reveal">
+          <dl>
+            <div>
+              <dt>Dirección</dt>
+              <dd>Calle 91 con 39B, Barranquilla</dd>
+            </div>
+            <div>
+              <dt>Teléfonos</dt>
+              <dd>
+                <a href="tel:+5753011758">(5) 301 1758</a><br>
+                <a href="tel:+573116991895">311 699 1895</a><br>
+                <a href="tel:+573016727202">301 672 7202</a>
+              </dd>
+            </div>
+            <div>
+              <dt>Correo</dt>
+              <dd><a href="mailto:info@roarefrigeracion.com">info@roarefrigeracion.com</a></dd>
+            </div>
+            <div>
+              <dt>Cobertura</dt>
+              <dd>Barranquilla y la Costa Caribe</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <a class="footer-brand" href="{% url 'landing' %}">
+          <span>ROA Refrigeración</span>
+        </a>
+        <p class="footer-tagline">Climatización y refrigeración para empresas.</p>
+      </div>
+      <div class="footer-col">
+        <h3>Servicios</h3>
+        <a href="#servicios">Montaje e instalación</a>
+        <a href="#servicios">Mantenimiento</a>
+        <a href="#servicios">Reparaciones</a>
+      </div>
+      <div class="footer-col">
+        <h3>Contacto</h3>
+        <a href="tel:+573116991895">311 699 1895</a>
+        <a href="mailto:info@roarefrigeracion.com">info@roarefrigeracion.com</a>
+        {% if user.is_authenticated %}
+        <a href="{% if user.is_supervisor %}{% url 'analytics:dashboard' %}{% else %}{% url 'inventory:clientes' %}{% endif %}">Ir al sistema</a>
+        {% else %}
+        <a href="{% url 'users:login' %}">Ingreso al sistema</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>&copy; 2026 ROA Refrigeración. Todos los derechos reservados.</span>
+      <span>Barranquilla, Colombia</span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var boton = document.querySelector('.menu-btn');
+      var nav = document.getElementById('nav-landing');
+      if (boton && nav) {
+        boton.addEventListener('click', function () {
+          var abierto = nav.classList.toggle('is-open');
+          boton.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        });
+        nav.querySelectorAll('a').forEach(function (enlace) {
+          enlace.addEventListener('click', function () {
+            nav.classList.remove('is-open');
+            boton.setAttribute('aria-expanded', 'false');
+          });
+        });
+      }
+
+      var sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var elementos = document.querySelectorAll('.reveal');
+      if (sinMovimiento || !('IntersectionObserver' in window)) {
+        elementos.forEach(function (el) { el.classList.add('is-visible'); });
+        return;
+      }
+      var observador = new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (entrada) {
+          if (entrada.isIntersecting) {
+            entrada.target.classList.add('is-visible');
+            observador.unobserve(entrada.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      elementos.forEach(function (el) { observador.observe(el); });
+    })();
+  </script>
+</body>
+</html>
