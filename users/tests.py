@@ -69,3 +69,9 @@ class LandingTests(TestCase):
         respuesta = self.client.get('/ingresar/')
         self.assertContains(respuesta, reverse('landing'))
         self.assertContains(respuesta, 'Volver al inicio')
+
+    def test_login_muestra_errores_de_campo(self):
+        respuesta = self.client.post('/ingresar/', {'username': '', 'password': ''})
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, 'Este campo es obligatorio.')
+        self.assertNotContains(respuesta, '{{')

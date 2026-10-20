@@ -35,15 +35,13 @@
                     <div class="mb-3">
                         <label for="id_username" class="form-label small fw-bold">Usuario</label>
                         {{ form.username }}
-                        {% if form.username.errors %}<div class="invalid-feedback d-block small">{{
-                            form.username.errors.0 }}</div>{% endif %}
+                        {% if form.username.errors %}<div class="invalid-feedback d-block small">{{ form.username.errors.0 }}</div>{% endif %}
                     </div>
 
                     <div class="mb-4">
                         <label for="id_password" class="form-label small fw-bold">Contraseña</label>
                         {{ form.password }}
-                        {% if form.password.errors %}<div class="invalid-feedback d-block small">{{
-                            form.password.errors.0 }}</div>{% endif %}
+                        {% if form.password.errors %}<div class="invalid-feedback d-block small">{{ form.password.errors.0 }}</div>{% endif %}
                     </div>
 
                     <div class="d-grid">
