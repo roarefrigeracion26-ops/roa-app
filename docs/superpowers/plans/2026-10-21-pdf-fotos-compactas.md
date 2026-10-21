@@ -4,7 +4,7 @@
 
 **Goal:** Reducir el papel del informe PDF mostrando hasta 2 fotos ANTES y 2 DESPUÉS por equipo en una cuadrícula de dos columnas, en tamaño carta, y bajar el límite de subida a 2 fotos por etapa.
 
-**Architecture:** El PDF se arma en `PDFOrdenView` y se renderiza con xhtml2pdf (pisa) desde `templates/operations/reporte_pdf_aa.html`. xhtml2pdf no soporta flexbox ni grid, así que la cuadrícula se implementa con tablas HTML. La sección fotográfica se extrae a un parcial reutilizable para ANTES y DESPUÉS. El límite se gobierna con la constante `MAX_FOTOS_POR_MOMENTO`.
+**Architecture:** El PDF se arma en `PDFOrdenView` y se renderiza con xhtml2pdf (pisa) desde `templates/operations/reporte_pdf_aa.html`. xhtml2pdf no soporta flexbox ni grid, así que la cuadrícula se implementa con tablas HTML. La sección fotográfica se extrae a un parcial reutilizable para ANTES y DESPUÉS. Como xhtml2pdf 0.2.17 no implementa `page-break-inside: avoid`, la barra y las dos tablas se envuelven en un `div` con `-pdf-keep-with-next: true` para que no se separen entre páginas. El límite se gobierna con la constante `MAX_FOTOS_POR_MOMENTO`.
 
 **Tech Stack:** Django 5.2, xhtml2pdf 0.2.17, pypdf 6.7.5 (tests), Pillow.
 
@@ -115,7 +115,7 @@ git commit -m "feat: limite de dos fotos por etapa"
 **Files:**
 - Create: `templates/operations/_pdf_fotos_grid.html`
 - Modify: `templates/operations/reporte_pdf_aa.html` (`@page`, estilos y sección de registro fotográfico)
-- Test: `operations/tests.py` (`FotosViewsTests`)
+- Test: `operations/tests.py` (`FotosViewsTests` y `ContrasteGoldTests`)
 
 **Interfaces:**
 - Consumes: `ei.fotos_antes` y `ei.fotos_despues`, listas que arma `PDFOrdenView`.
@@ -242,7 +242,6 @@ Agregar antes de `</style>`:
             width: 100%;
             border-collapse: collapse;
             margin: 3px 0 0;
-            page-break-inside: avoid;
         }
 
         .foto-titulo {
@@ -262,7 +261,7 @@ Agregar antes de `</style>`:
         }
 
         .foto-img {
-            width: 92mm;
+            width: 80mm;
             border: 1px solid #333;
         }
 
@@ -282,11 +281,17 @@ por:
 
 ```html
     {% if ei.fotos_antes or ei.fotos_despues %}
-    <div class="section-bar" style="margin-top:4px;background:#8B6914;-pdf-keep-with-next:true;">REGISTRO FOTOGRÁFICO</div>
+    <div style="-pdf-keep-with-next:true;">
+    <div class="section-bar" style="margin-top:4px;background:#8B6914;">REGISTRO FOTOGRÁFICO</div>
     {% include 'operations/_pdf_fotos_grid.html' with titulo='ANTES' fotos=ei.fotos_antes %}
     {% include 'operations/_pdf_fotos_grid.html' with titulo='DESPUÉS' fotos=ei.fotos_despues %}
+    </div>
     {% endif %}
 ```
+
+Nota: 80 mm es el ancho máximo probado que mantiene ANTES y DESPUÉS en una sola página
+con fotos verticales 3:4 (80 x 106.7 mm cada una) y deja espacio para el pie del informe.
+Con 85 mm el pie se desborda a una tercera página casi vacía.
 
 - [ ] **Step 6: Correr los tests nuevos**
 
@@ -295,6 +300,29 @@ Run:
 $env:DATABASE_URL='sqlite:///./sqlite_test_tmp.sqlite3'; $env:ALLOWED_HOSTS='testserver,localhost,127.0.0.1'; & "C:\Users\Usuario\roa-app\venv\Scripts\python.exe" manage.py test operations.tests.FotosViewsTests -v 1
 ```
 Expected: PASS. Si `test_pdf_compacto_no_agrega_mas_de_una_pagina` falla, revisar que la imagen no tenga alto fijo y que las tablas no se separen; ajustar solo `width` de `.foto-img` y paddings, nunca proporción.
+
+- [ ] **Step 6b: Actualizar el test de contraste dorado**
+
+`ContrasteGoldTests.test_pdf_usa_gold_aa_en_barra_y_etiquetas` espera etiquetas ANTES y DESPUÉS en `<div style="...color:#8B6914...">`. Con el nuevo diseño son celdas con la clase `.foto-titulo`. Reemplazar ese bucle por:
+
+```python
+        for etiqueta in ('ANTES', 'DESPUÉS'):
+            with self.subTest(etiqueta=etiqueta):
+                self.assertIn(
+                    f"titulo='{etiqueta}'",
+                    contenido,
+                    f'El PDF debe rotular la sección {etiqueta}',
+                )
+
+        titulo = self._regla_css(contenido, '.foto-titulo')
+        self.assertEqual(self._valor_declaracion(titulo, 'color'), '#8b6914')
+```
+
+Run:
+```powershell
+$env:DATABASE_URL='sqlite:///./sqlite_test_tmp.sqlite3'; $env:ALLOWED_HOSTS='testserver,localhost,127.0.0.1'; & "C:\Users\Usuario\roa-app\venv\Scripts\python.exe" manage.py test operations.tests.ContrasteGoldTests -v 2
+```
+Expected: PASS.
 
 - [ ] **Step 7: Commit**
 
