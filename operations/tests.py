@@ -119,6 +119,27 @@ class FotosViewsTests(TestCase):
         self.client.post(self.url_subir(), {'fotos': [imagen_subida()]})
         self.assertEqual(FotoEquipo.objects.filter(equipo_intervenido=self.ei, momento='ANTES').count(), MAX_FOTOS_POR_MOMENTO)
 
+    def test_limite_es_dos_fotos_por_etapa(self):
+        self.assertEqual(MAX_FOTOS_POR_MOMENTO, 2)
+
+    def test_rechaza_tercera_foto_e_indica_el_limite(self):
+        self.client.post(self.url_subir(), {
+            'fotos': [imagen_subida('a.jpg'), imagen_subida('b.jpg')],
+        })
+        respuesta = self.client.post(
+            self.url_subir(), {'fotos': [imagen_subida('c.jpg')]},
+            HTTP_X_REQUESTED_WITH='fetch',
+        )
+        self.assertEqual(
+            FotoEquipo.objects.filter(
+                equipo_intervenido=self.ei, momento=MomentoFoto.ANTES,
+            ).count(),
+            2,
+        )
+        self.assertFalse(respuesta.json()['ok'])
+        self.assertIn('Máximo 2 fotos por etapa', respuesta.json()['message'])
+        self.assertEqual(respuesta.json()['max'], 2)
+
     def test_limite_no_se_excede_con_multiples_archivos(self):
         self._crear_foto(self.ei, MomentoFoto.ANTES)
         archivos = [imagen_subida(f'{i}.jpg') for i in range(5)]
@@ -336,7 +357,7 @@ class FotosViewsTests(TestCase):
         self.assertIn('col-md-6', html)
         self.assertIn('foto-bloque-head--antes', html)
         self.assertIn('foto-bloque-head--despues', html)
-        self.assertIn('1/3', html)
+        self.assertIn(f'1/{MAX_FOTOS_POR_MOMENTO}', html)
 
     def test_boton_eliminar_foto_es_accesible_y_visible(self):
         self.client.post(self.url_subir(), {'fotos': imagen_subida()})

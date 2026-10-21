@@ -629,7 +629,7 @@ def _json_error(message):
 # SubirFotosView: agrega fotos (Antes/Después) a un equipo intervenido
 # ─────────────────────────────────────────────────────────
 class SubirFotosView(LoginRequiredMixin, View):
-    """POST: agrega hasta 3 fotos por etapa (Antes/Después) a un equipo."""
+    """POST: agrega fotos por etapa (Antes/Después) hasta el máximo permitido."""
 
     def _respuesta(self, request, orden, ei, momento, ok, message, errores=None, nivel=messages.error):
         if _es_fetch(request):
@@ -677,7 +677,10 @@ class SubirFotosView(LoginRequiredMixin, View):
                 pk=equipo_id, orden=orden,
             )
             existentes = ei.fotos.filter(momento=momento).count()
-            aviso_maximo = 'Máximo 3 fotos por etapa. Elimina una para agregar otra.'
+            aviso_maximo = (
+                f'Máximo {MAX_FOTOS_POR_MOMENTO} fotos por etapa. '
+                'Elimina una para agregar otra.'
+            )
             if existentes >= MAX_FOTOS_POR_MOMENTO:
                 return self._respuesta(
                     request, orden, ei, momento, False, aviso_maximo, nivel=messages.warning,

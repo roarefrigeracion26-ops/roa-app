@@ -7,7 +7,7 @@ from django.conf import settings
 from inventory.models import EquipoAA
 
 # Máximo de fotos permitidas por etapa (Antes / Después) de un equipo.
-MAX_FOTOS_POR_MOMENTO = 3
+MAX_FOTOS_POR_MOMENTO = 2
 
 
 class TipoMantenimiento(models.TextChoices):
