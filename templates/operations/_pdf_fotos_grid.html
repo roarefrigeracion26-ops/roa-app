@@ -1,0 +1,24 @@
+<table class="foto-bloque">
+    <tr>
+        <td colspan="2" class="foto-titulo">{{ titulo }}</td>
+    </tr>
+    {% if fotos %}
+    <tr>
+        {% for foto in fotos|slice:":2" %}
+        <td class="foto-celda"><img class="foto-img" src="{{ foto.imagen.url }}"></td>
+        {% endfor %}
+    </tr>
+    {% if fotos|length > 2 %}
+    {% for foto in fotos|slice:"2:" %}
+    <tr>
+        <td class="foto-celda"><img class="foto-img" src="{{ foto.imagen.url }}"></td>
+        <td class="foto-celda"></td>
+    </tr>
+    {% endfor %}
+    {% endif %}
+    {% else %}
+    <tr>
+        <td colspan="2" class="foto-vacio">Sin fotos.</td>
+    </tr>
+    {% endif %}
+</table>

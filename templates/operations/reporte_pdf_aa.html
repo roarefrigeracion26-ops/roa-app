@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <style>
         @page {
-            size: A4;
+            size: letter;
             margin: 12mm 10mm;
         }
 
@@ -101,6 +101,41 @@
             margin-top: 8px;
             border-top: 1px solid #ccc;
             padding-top: 4px;
+        }
+
+        .foto-bloque {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 3px 0 0;
+            page-break-inside: avoid;
+        }
+
+        .foto-titulo {
+            border: 1px solid #333;
+            font-weight: bold;
+            font-size: 8pt;
+            color: #8B6914;
+            padding: 2px 5px;
+        }
+
+        .foto-celda {
+            border: 1px solid #333;
+            width: 50%;
+            padding: 2px;
+            vertical-align: top;
+            text-align: center;
+        }
+
+        .foto-img {
+            width: 92mm;
+            border: 1px solid #333;
+        }
+
+        .foto-vacio {
+            border: 1px solid #333;
+            font-size: 8pt;
+            color: #555;
+            padding: 2px 5px;
         }
     </style>
 </head>
@@ -363,31 +398,9 @@
     </table>
 
     {% if ei.fotos_antes or ei.fotos_despues %}
-    <div class="section-bar" style="margin-top:4px;background:#8B6914;">REGISTRO FOTOGRÁFICO</div>
-    <div style="border:1px solid #333;padding:4px;margin-top:3px;">
-        <div style="font-weight:bold;font-size:8pt;color:#8B6914;">ANTES</div>
-        <div>
-            {% for foto in ei.fotos_antes %}
-            <div style="text-align:center;page-break-inside:avoid;">
-                <img src="{{ foto.imagen.url }}" style="width:150mm;border:1px solid #333;">
-            </div>
-            {% empty %}
-            <span style="font-size:8pt;color:#555;">Sin fotos.</span>
-            {% endfor %}
-        </div>
-    </div>
-    <div style="border:1px solid #333;padding:4px;margin-top:3px;">
-        <div style="font-weight:bold;font-size:8pt;color:#8B6914;">DESPUÉS</div>
-        <div>
-            {% for foto in ei.fotos_despues %}
-            <div style="text-align:center;page-break-inside:avoid;">
-                <img src="{{ foto.imagen.url }}" style="width:150mm;border:1px solid #333;">
-            </div>
-            {% empty %}
-            <span style="font-size:8pt;color:#555;">Sin fotos.</span>
-            {% endfor %}
-        </div>
-    </div>
+    <div class="section-bar" style="margin-top:4px;background:#8B6914;-pdf-keep-with-next:true;">REGISTRO FOTOGRÁFICO</div>
+    {% include 'operations/_pdf_fotos_grid.html' with titulo='ANTES' fotos=ei.fotos_antes %}
+    {% include 'operations/_pdf_fotos_grid.html' with titulo='DESPUÉS' fotos=ei.fotos_despues %}
     {% endif %}
     {% endfor %}
 

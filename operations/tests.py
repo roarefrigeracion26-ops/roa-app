@@ -576,6 +576,64 @@ class FotosViewsTests(TestCase):
         texto = '\n'.join(pagina.extract_text() or '' for pagina in lector.pages)
         self.assertNotIn('REGISTRO FOTOGR', texto)
 
+    def test_pdf_usa_tamano_carta(self):
+        from pypdf import PdfReader
+        from operations.views import PDFOrdenView
+
+        respuesta = PDFOrdenView().get(self._request(), orden_id=self.orden.pk)
+        self.assertEqual(respuesta.status_code, 200)
+        pagina = PdfReader(io.BytesIO(respuesta.content)).pages[0]
+        self.assertAlmostEqual(float(pagina.mediabox.width), 612, delta=1)
+        self.assertAlmostEqual(float(pagina.mediabox.height), 792, delta=1)
+
+    def test_plantilla_pdf_fotos_en_dos_columnas(self):
+        colores = [(200, 10, 10), (10, 200, 10), (10, 10, 200), (200, 200, 10)]
+        for indice, color in enumerate(colores):
+            momento = MomentoFoto.ANTES if indice < 2 else MomentoFoto.DESPUES
+            FotoEquipo.objects.create(
+                equipo_intervenido=self.ei,
+                momento=momento,
+                imagen=imagen_subida(f'grid-{indice}.jpg', color=color),
+            )
+
+        ei = EquipoIntervenido.objects.get(pk=self.ei.pk)
+        ei.fotos_antes = list(ei.fotos.filter(momento=MomentoFoto.ANTES))
+        ei.fotos_despues = list(ei.fotos.filter(momento=MomentoFoto.DESPUES))
+
+        from django.template.loader import get_template
+        html = get_template('operations/reporte_pdf_aa.html').render({
+            'orden': self.orden,
+            'equipo': self.orden.equipo,
+            'equipos_intervenidos': [ei],
+            'actividades': [],
+            'fecha': self.orden.hora_inicio,
+            'es_preventivo': False,
+        })
+        self.assertEqual(html.count('class="foto-bloque"'), 2)
+        self.assertEqual(html.count('class="foto-celda"'), 4)
+
+    def test_pdf_compacto_no_agrega_mas_de_una_pagina(self):
+        from pypdf import PdfReader
+        from operations.views import PDFOrdenView
+
+        sin_fotos = PdfReader(io.BytesIO(
+            PDFOrdenView().get(self._request(), orden_id=self.orden.pk).content,
+        ))
+
+        colores = [(200, 10, 10), (10, 200, 10), (10, 10, 200), (200, 200, 10)]
+        for indice, color in enumerate(colores):
+            momento = MomentoFoto.ANTES if indice < 2 else MomentoFoto.DESPUES
+            FotoEquipo.objects.create(
+                equipo_intervenido=self.ei,
+                momento=momento,
+                imagen=imagen_subida(f'compacto-{indice}.jpg', color=color),
+            )
+
+        con_fotos = PdfReader(io.BytesIO(
+            PDFOrdenView().get(self._request(), orden_id=self.orden.pk).content,
+        ))
+        self.assertLessEqual(len(con_fotos.pages), len(sin_fotos.pages) + 1)
+
     def test_meta_ordering_estable(self):
         self.assertEqual(FotoEquipo._meta.ordering, ['creada_en', 'id'])
 
