@@ -94,7 +94,9 @@ class FotosViewsTests(TestCase):
             fecha=date.today(),
             hora_inicio=timezone.now(),
         )
-        self.ei = EquipoIntervenido.objects.create(orden=self.orden, nombre_equipo='UCA 1')
+        self.ei = EquipoIntervenido.objects.create(
+            orden=self.orden, nombre_equipo='UCA 1', tipo_equipo='UCA',
+        )
         self.client.force_login(self.tecnico)
 
     def url_subir(self, momento='ANTES'):
@@ -358,6 +360,8 @@ class FotosViewsTests(TestCase):
         self.assertIn('foto-bloque-head--antes', html)
         self.assertIn('foto-bloque-head--despues', html)
         self.assertIn(f'1/{MAX_FOTOS_POR_MOMENTO}', html)
+        self.assertIn('badge bg-secondary ms-1">UCA</span>', html)
+        self.assertNotIn('{{ ei.tipo_equipo', html)
 
     def test_boton_eliminar_foto_es_accesible_y_visible(self):
         self.client.post(self.url_subir(), {'fotos': imagen_subida()})

@@ -366,8 +366,7 @@
 
         {% for ei in equipos_intervenidos %}
         <div class="equipo-card-idx p-3 m-3">
-            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo
-                    }}</span></div>
+            <div class="fw-bold">{{ ei.nombre_equipo }} <span class="badge bg-secondary ms-1">{{ ei.tipo_equipo }}</span></div>
             <div class="small text-muted">{{ ei.marca }} {{ ei.modelo }}</div>
             {% if ei.observacion.texto %}<div class="small text-muted mt-1">{{ ei.observacion.texto }}</div>{% endif %}
 
