@@ -877,12 +877,14 @@ class ContrasteGoldTests(TestCase):
 
         for etiqueta in ('ANTES', 'DESPUÉS'):
             with self.subTest(etiqueta=etiqueta):
-                self.assertRegex(
+                self.assertIn(
+                    f"titulo='{etiqueta}'",
                     contenido,
-                    rf'<div style="[^"]*color:\s*#8B6914;[^"]*">\s*'
-                    rf'{etiqueta}\s*</div>',
-                    f'La etiqueta {etiqueta} debe usar #8B6914',
+                    f'El PDF debe rotular la sección {etiqueta}',
                 )
+
+        titulo = self._regla_css(contenido, '.foto-titulo')
+        self.assertEqual(self._valor_declaracion(titulo, 'color'), '#8b6914')
 
 
 class MediaPatternsTests(TestCase):

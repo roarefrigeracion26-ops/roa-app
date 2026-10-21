@@ -107,7 +107,6 @@
             width: 100%;
             border-collapse: collapse;
             margin: 3px 0 0;
-            page-break-inside: avoid;
         }
 
         .foto-titulo {
@@ -127,7 +126,7 @@
         }
 
         .foto-img {
-            width: 92mm;
+            width: 80mm;
             border: 1px solid #333;
         }
 
@@ -398,9 +397,11 @@
     </table>
 
     {% if ei.fotos_antes or ei.fotos_despues %}
-    <div class="section-bar" style="margin-top:4px;background:#8B6914;-pdf-keep-with-next:true;">REGISTRO FOTOGRÁFICO</div>
+    <div style="-pdf-keep-with-next:true;">
+    <div class="section-bar" style="margin-top:4px;background:#8B6914;">REGISTRO FOTOGRÁFICO</div>
     {% include 'operations/_pdf_fotos_grid.html' with titulo='ANTES' fotos=ei.fotos_antes %}
     {% include 'operations/_pdf_fotos_grid.html' with titulo='DESPUÉS' fotos=ei.fotos_despues %}
+    </div>
     {% endif %}
     {% endfor %}
 
