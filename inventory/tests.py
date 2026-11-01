@@ -77,3 +77,14 @@ class EmpresaViewTest(TestCase):
         self.assertNotContains(response, "Sede Otra Empresa")
 
 
+class AdminEmpresaTest(TestCase):
+    def test_empresa_registrada_en_admin(self):
+        from django.contrib import admin
+        self.assertIn(Empresa, admin.site._registry)
+        empresa_admin = admin.site._registry[Empresa]
+        empresa = Empresa(nombre="Prueba Admin")
+        self.assertEqual(empresa_admin.logo_preview(empresa), '—')
+        self.assertEqual(empresa_admin.total_sedes_count(empresa), 0)
+
+
+
