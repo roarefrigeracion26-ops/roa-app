@@ -3,6 +3,8 @@ from . import views
 
 app_name = 'inventory'
 urlpatterns = [
+    path('empresas/', views.EmpresaListView.as_view(), name='empresas'),
+    path('empresa/<int:empresa_id>/sedes/', views.ClienteListView.as_view(), name='sedes_empresa'),
     path('clientes/', views.ClienteListView.as_view(), name='clientes'),
     path('cliente/<int:cliente_id>/equipos/', views.EquiposClienteView.as_view(), name='equipos_cliente'),
     # API QR (futuro uso)

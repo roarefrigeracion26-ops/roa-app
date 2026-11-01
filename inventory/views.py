@@ -5,9 +5,25 @@ from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
 
+from django.db.models import Count, Q
 from users.models import Rol
-from .models import Cliente, EquipoAA
+from .models import Cliente, EquipoAA, Empresa
 
+
+class EmpresaListView(LoginRequiredMixin, View):
+    """Pantalla interactiva con tarjetas y logos de cada cliente comercial."""
+    def get(self, request):
+        from operations.services import obtener_preventivo_abierto, tecnico_correctivos_abiertos
+        empresas = Empresa.objects.filter(activo=True).annotate(
+            total_sedes=Count('sedes', filter=Q(sedes__activo=True))
+        ).order_by('nombre')
+        preventivo_abierto = obtener_preventivo_abierto(request.user)
+        correctivos_abiertos = tecnico_correctivos_abiertos(request.user)
+        return render(request, 'inventory/empresas.html', {
+            'empresas': empresas,
+            'preventivo_abierto': preventivo_abierto,
+            'correctivos_abiertos': correctivos_abiertos,
+        })
 
 class ClienteListView(LoginRequiredMixin, View):
     """Lista de clientes activos para seleccionar un equipo."""

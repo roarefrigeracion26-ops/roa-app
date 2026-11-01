@@ -33,3 +33,30 @@ class EmpresaModelTest(TestCase):
         self.assertEqual(sede.codigo, "")
         self.assertIn("Sede Recreo", str(sede))
         self.assertIn("Bodytech", str(sede))
+
+
+class EmpresaViewTest(TestCase):
+    def setUp(self):
+        from users.models import Tecnico
+        self.tecnico = Tecnico.objects.create_user(
+            username='tecnico_emp', password='password123', rol='tecnico'
+        )
+        self.empresa1 = Empresa.objects.create(nombre="Empresa Alpha")
+        self.empresa2 = Empresa.objects.create(nombre="Empresa Beta", activo=False)
+        Cliente.objects.create(empresa=self.empresa1, nombre="Sede 1")
+        Cliente.objects.create(empresa=self.empresa1, nombre="Sede 2")
+
+    def test_empresa_list_view_autenticado_muestra_empresas_activas(self):
+        from django.test import Client
+        from django.urls import reverse
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('inventory:empresas')
+        response = client.get(url, secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Empresa Alpha")
+        self.assertNotContains(response, "Empresa Beta")
+        empresas = response.context['empresas']
+        empresa_alpha = next(e for e in empresas if e.pk == self.empresa1.pk)
+        self.assertEqual(empresa_alpha.total_sedes, 2)
+

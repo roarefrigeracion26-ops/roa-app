@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Seleccionar Cliente Comercial{% endblock %}
+
+{% block extra_css %}
+<style>
+  .empresa-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    overflow: hidden;
+  }
+  .empresa-card:hover, .empresa-card:active {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(21, 101, 192, 0.15) !important;
+    border-color: var(--roa-blue);
+    color: inherit;
+  }
+  .logo-box {
+    width: 100%;
+    height: 90px;
+    background: #ffffff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .logo-box img {
+    max-height: 74px;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .avatar-fallback {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--roa-blue) 0%, var(--roa-blue-mid) 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 10px rgba(21, 101, 192, 0.25);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h1 class="h4 fw-bold text-primary mb-1">
+      <i class="bi bi-briefcase-fill me-2"></i>Seleccionar Cliente
+    </h1>
+    <p class="text-muted small mb-0">Elige la empresa comercial para acceder a sus sedes y equipos</p>
+  </div>
+</div>
+
+{% if preventivo_abierto %}
+<div class="alert alert-preventivo mb-4 shadow-sm">
+  <div class="d-flex align-items-start gap-2">
+    <i class="bi bi-exclamation-triangle-fill text-warning fs-5 mt-1"></i>
+    <div>
+      <strong>Tienes un Preventivo MP abierto:</strong> {{ preventivo_abierto.radicado }}
+      {% if preventivo_abierto.equipo %}
+        — {{ preventivo_abierto.equipo.nombre }}
+      {% endif %}
+      ({{ preventivo_abierto.cliente_nombre }})<br>
+      <a href="{% url 'operations:formulario_orden' preventivo_abierto.pk %}"
+         class="btn btn-sm btn-roa-gold mt-2">
+        <i class="bi bi-arrow-right-circle me-1"></i>Continuar preventivo
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if correctivos_abiertos %}
+<div class="alert alert-warning border-start border-4 border-warning mb-4 shadow-sm">
+  <div class="d-flex align-items-start gap-2">
+    <i class="bi bi-tools text-warning fs-5 mt-1"></i>
+    <div class="flex-grow-1">
+      <strong>Tienes {{ correctivos_abiertos|length }} Correctivo{{ correctivos_abiertos|length|pluralize:"s" }} MC abiertos:</strong>
+      {% for mc in correctivos_abiertos %}
+      <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
+        <span class="radicado-badge">{{ mc.radicado }}</span>
+        <span class="text-dark">— {{ mc.equipo.nombre|default:"—" }} ({{ mc.cliente_nombre }})</span>
+        <a href="{% url 'operations:formulario_orden' mc.pk %}" class="btn btn-sm btn-roa-primary">
+          <i class="bi bi-arrow-right-circle me-1"></i>Continuar
+        </a>
+        <form method="POST" action="{% url 'operations:cancelar_orden' mc.pk %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger rounded-circle p-2 lh-1" title="Cancelar" style="width:36px;height:36px;">
+            <i class="bi bi-x-lg"></i>
+            <span class="visually-hidden">Cancelar</span>
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="mb-3">
+  <input type="search" id="buscarEmpresa" class="form-control form-control-lg fs-6" placeholder="🔍 Buscar cliente comercial...">
+</div>
+
+<div class="row g-3" id="listaEmpresas">
+  {% for empresa in empresas %}
+  <div class="col-12 col-md-6 col-lg-4 empresa-col">
+    <a href="{% url 'inventory:sedes_empresa' empresa.pk %}" class="empresa-card card p-3 shadow-sm h-100">
+      <div class="d-flex flex-column align-items-center text-center">
+        <div class="logo-box mb-3">
+          {% if empresa.logo %}
+            <img src="{{ empresa.logo.url }}" alt="{{ empresa.nombre }}" loading="lazy">
+          {% else %}
+            <div class="avatar-fallback">
+              {{ empresa.nombre|slice:":2"|upper }}
+            </div>
+          {% endif %}
+        </div>
+        <h2 class="h5 fw-bold text-dark mb-1">{{ empresa.nombre }}</h2>
+        {% if empresa.nit %}
+          <span class="text-muted small mb-2">NIT: {{ empresa.nit }}</span>
+        {% endif %}
+        <div class="mt-auto pt-2 d-flex align-items-center justify-content-between w-100 border-top">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+            <i class="bi bi-geo-alt-fill me-1"></i>{{ empresa.total_sedes|default:0 }} sede{{ empresa.total_sedes|pluralize }}
+          </span>
+          <span class="text-primary small fw-semibold">
+            Ver tiendas <i class="bi bi-chevron-right ms-1"></i>
+          </span>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% empty %}
+  <div class="col-12 text-center text-muted py-5">
+    <i class="bi bi-building-x fs-1 d-block mb-2 text-secondary"></i>
+    <p class="mb-0">No hay empresas clientes registradas.</p>
+    <small>Contacte al administrador para configurar los clientes comerciales.</small>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const inputEmpresa = document.getElementById('buscarEmpresa');
+  if (inputEmpresa) {
+    inputEmpresa.addEventListener('input', () => {
+      const q = inputEmpresa.value.toLowerCase();
+      document.querySelectorAll('#listaEmpresas .empresa-col').forEach(col => {
+        col.style.display = col.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  }
+</script>
+{% endblock %}
