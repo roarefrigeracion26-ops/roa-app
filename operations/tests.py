@@ -17,7 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
-from inventory.models import Cliente, EquipoAA
+from inventory.models import Cliente, EquipoAA, Empresa
 from operations import images
 from operations.models import (
     EstadoOrden, EquipoIntervenido, FotoEquipo, MomentoFoto,
@@ -905,3 +905,42 @@ class MediaPatternsTests(TestCase):
         from config.urls import _media_patterns
 
         self.assertEqual(_media_patterns(), [])
+
+
+class MultiClienteOrdenTests(TestCase):
+    def setUp(self):
+        self.tecnico = Tecnico.objects.create_user(
+            username='tecnico_multi', password='password123', rol='tecnico'
+        )
+        self.empresa = Empresa.objects.create(nombre='Super Almacenes Éxito')
+        self.sede = Cliente.objects.create(
+            empresa=self.empresa,
+            codigo='EXT-01',
+            nombre='Éxito Murillo',
+            dir_cliente='Calle 45 # 23-10'
+        )
+
+    def test_nueva_orden_form_acepta_radicado_alfanumerico(self):
+        from operations.forms import NuevaOrdenForm
+        form = NuevaOrdenForm(data={
+            'tipo': 'MP',
+            'radicado_numero': 'OT-2026-X1',
+            'cliente_nombre': self.empresa.nombre,
+            'dir_cliente': f'{self.sede.nombre} — {self.sede.dir_cliente}',
+            'fecha': '2026-11-01',
+            'mes': 'Noviembre',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.get_radicado(), 'OT-2026-X1')
+
+    def test_nueva_orden_cliente_view_precarga_empresa_y_sede(self):
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('operations:nueva_orden_cliente', kwargs={'cliente_id': self.sede.pk})
+        response = client.get(url, secure=True)
+        self.assertEqual(response.status_code, 200)
+        form = response.context['form']
+        self.assertEqual(form.initial['cliente_nombre'], 'Super Almacenes Éxito')
+        self.assertIn('Éxito Murillo', form.initial['dir_cliente'])
+        self.assertIn('Calle 45 # 23-10', form.initial['dir_cliente'])
+

@@ -149,9 +149,18 @@ class NuevaOrdenClienteView(LoginRequiredMixin, View):
             if m and m.group():
                 sug_numero = str(int(m.group()) + 1)
 
+        nombre_empresa = cliente.empresa.nombre if cliente.empresa else cliente.nombre
+        if cliente.empresa:
+            partes_dir = [cliente.nombre]
+            if cliente.dir_cliente:
+                partes_dir.append(cliente.dir_cliente)
+            dir_sede = " — ".join(partes_dir)
+        else:
+            dir_sede = cliente.dir_cliente
+
         form = NuevaOrdenClienteForm(initial={
-            'cliente_nombre': cliente.nombre,
-            'dir_cliente': cliente.dir_cliente,
+            'cliente_nombre': nombre_empresa,
+            'dir_cliente': dir_sede,
             'radicado_numero': sug_numero,
             'fecha': timezone.localdate(),
             'mes': SPANISH_MONTHS.get(timezone.localdate().month, ''),
@@ -230,9 +239,19 @@ class NuevaOrdenView(LoginRequiredMixin, View):
             if m and m.group():
                 sug_numero = str(int(m.group()) + 1)
 
+        sede = equipo.cliente
+        nombre_empresa = sede.empresa.nombre if sede.empresa else sede.nombre
+        if sede.empresa:
+            partes_dir = [sede.nombre]
+            if sede.dir_cliente:
+                partes_dir.append(sede.dir_cliente)
+            dir_sede = " — ".join(partes_dir)
+        else:
+            dir_sede = sede.dir_cliente
+
         form = NuevaOrdenForm(initial={
-            'cliente_nombre': equipo.cliente.nombre,
-            'dir_cliente': equipo.cliente.dir_cliente,
+            'cliente_nombre': nombre_empresa,
+            'dir_cliente': dir_sede,
             'radicado_numero': sug_numero,
             'fecha': timezone.localdate(),
             'mes': SPANISH_MONTHS.get(timezone.localdate().month, ''),

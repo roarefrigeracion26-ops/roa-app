@@ -53,23 +53,21 @@ class NuevaOrdenForm(forms.Form):
         label='Tipo de mantenimiento',
     )
     radicado_numero = forms.CharField(
-        max_length=10,
+        max_length=30,
         label='Número de radicado',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': '9167',
-            'inputmode': 'numeric',
-            'pattern': '[0-9]*',
+            'placeholder': 'Ej: 9167 o OT-2026-X1',
         }),
-        help_text='Solo los dígitos, sin el prefijo MP/MC.',
+        help_text='Solo dígitos para MP/MC, o código completo de talonario.',
     )
     cliente_nombre = forms.CharField(
         max_length=200, label='Cliente',
-        widget=_text_input('Ej: OLIMPICA S.A.'),
+        widget=_text_input('Ej: OLIMPICA S.A. o Nombre del Cliente'),
     )
     dir_cliente = forms.CharField(
         max_length=300, label='Dir. Cliente', required=False,
-        widget=_text_input('Ej: 1059'),
+        widget=_text_input('Ej: Sede Norte — Calle 80'),
     )
     fecha = forms.DateField(
         label='Fecha',
@@ -82,10 +80,12 @@ class NuevaOrdenForm(forms.Form):
     )
 
     def get_radicado(self):
-        """Construye el radicado completo: 'MP1234' o 'MC1234'."""
+        """Construye o devuelve el radicado completo."""
         tipo = self.cleaned_data.get('tipo', '')
-        numero = self.cleaned_data.get('radicado_numero', '')
-        return f'{tipo}{numero}'
+        radicado_val = self.cleaned_data.get('radicado_numero', '').strip()
+        if radicado_val.isdigit() and tipo:
+            return f'{tipo}{radicado_val}'
+        return radicado_val
 
 class NuevaOrdenClienteForm(NuevaOrdenForm):
     """Formulario para la tienda. Fuerza el tipo MP y esconde la selección de MC."""

@@ -46,8 +46,8 @@ class OrdenServicio(models.Model):
         verbose_name='Tipo de mantenimiento'
     )
     radicado = models.CharField(
-        max_length=20, unique=True,
-        help_text='Ej: MP9167 o MC1234',
+        max_length=30, unique=True,
+        help_text='Ej: MP9167, MC1234 o alfanumérico',
         verbose_name='Radicado No.'
     )
     # Datos del encabezado / orden de servicio
