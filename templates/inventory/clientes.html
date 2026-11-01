@@ -1,11 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Clientes{% endblock %}
+{% block title %}{% if empresa %}{{ empresa.nombre }} — Sedes{% else %}Sedes / Tiendas{% endif %}{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 fw-bold text-primary mb-0">
-        <i class="bi bi-building me-2"></i>Seleccionar Cliente
-    </h1>
+<div class="d-flex align-items-center gap-2 mb-3">
+    {% if empresa %}
+    <a href="{% url 'inventory:empresas' %}" class="btn btn-sm btn-outline-secondary" title="Volver a Clientes">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    {% endif %}
+    <div>
+        <h1 class="h4 fw-bold text-primary mb-0">
+            {% if empresa %}
+                {{ empresa.nombre }}
+            {% else %}
+                <i class="bi bi-building me-2"></i>Sedes / Tiendas
+            {% endif %}
+        </h1>
+        {% if empresa %}
+            <div class="text-muted small">Selecciona la sede o tienda a intervenir</div>
+        {% endif %}
+    </div>
 </div>
 
 {% if preventivo_abierto %}
@@ -55,7 +69,7 @@
 {% endif %}
 
 <div class="mb-3">
-    <input type="search" id="buscarCliente" class="form-control" placeholder="🔍 Buscar cliente...">
+    <input type="search" id="buscarCliente" class="form-control" placeholder="🔍 Buscar sede o tienda...">
 </div>
 
 <div id="listaClientes">
@@ -64,12 +78,17 @@
         <div class="d-flex align-items-center gap-3">
             <div class="rounded-circle d-flex align-items-center justify-content-center"
                 style="width:42px;height:42px;background:var(--roa-blue-light);flex-shrink:0;">
-                <i class="bi bi-building text-primary fs-5"></i>
+                <i class="bi bi-geo-alt text-primary fs-5"></i>
             </div>
             <div>
-                <div class="fw-semibold">{{ cliente.nombre }}</div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    {% if cliente.codigo %}
+                    <span class="badge bg-secondary-subtle text-dark border border-secondary-subtle">#{{ cliente.codigo }}</span>
+                    {% endif %}
+                    <span class="fw-semibold">{{ cliente.nombre }}</span>
+                </div>
                 {% if cliente.dir_cliente %}
-                <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ cliente.dir_cliente }}</div>
+                <div class="text-muted small"><i class="bi bi-compass me-1"></i>{{ cliente.dir_cliente }}</div>
                 {% endif %}
             </div>
             <i class="bi bi-chevron-right text-muted ms-auto"></i>
@@ -78,7 +97,7 @@
     {% empty %}
     <div class="text-center text-muted py-5">
         <i class="bi bi-building-x fs-1 d-block mb-2"></i>
-        No hay clientes registrados. Contacte al administrador.
+        No hay sedes registradas para este cliente. Contacte al administrador.
     </div>
     {% endfor %}
 </div>

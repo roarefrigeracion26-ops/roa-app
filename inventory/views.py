@@ -26,13 +26,20 @@ class EmpresaListView(LoginRequiredMixin, View):
         })
 
 class ClienteListView(LoginRequiredMixin, View):
-    """Lista de clientes activos para seleccionar un equipo."""
-    def get(self, request):
+    """Lista de sedes/tiendas de una empresa para seleccionar o iniciar intervención."""
+    def get(self, request, empresa_id=None):
         from operations.services import obtener_preventivo_abierto, tecnico_correctivos_abiertos
-        clientes = Cliente.objects.filter(activo=True).order_by('nombre')
+        empresa = None
+        if empresa_id:
+            empresa = get_object_or_404(Empresa, pk=empresa_id, activo=True)
+            clientes = Cliente.objects.filter(empresa=empresa, activo=True).order_by('nombre')
+        else:
+            clientes = Cliente.objects.filter(activo=True).order_by('nombre')
+
         preventivo_abierto = obtener_preventivo_abierto(request.user)
         correctivos_abiertos = tecnico_correctivos_abiertos(request.user)
         return render(request, 'inventory/clientes.html', {
+            'empresa': empresa,
             'clientes': clientes,
             'preventivo_abierto': preventivo_abierto,
             'correctivos_abiertos': correctivos_abiertos,

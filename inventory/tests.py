@@ -60,3 +60,20 @@ class EmpresaViewTest(TestCase):
         empresa_alpha = next(e for e in empresas if e.pk == self.empresa1.pk)
         self.assertEqual(empresa_alpha.total_sedes, 2)
 
+    def test_sedes_empresa_view_filtra_solo_sedes_de_esa_empresa(self):
+        from django.test import Client
+        from django.urls import reverse
+        empresa_otra = Empresa.objects.create(nombre="Empresa Otra")
+        Cliente.objects.create(empresa=empresa_otra, nombre="Sede Otra Empresa")
+
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('inventory:sedes_empresa', kwargs={'empresa_id': self.empresa1.pk})
+        response = client.get(url, secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['empresa'], self.empresa1)
+        self.assertContains(response, "Sede 1")
+        self.assertContains(response, "Sede 2")
+        self.assertNotContains(response, "Sede Otra Empresa")
+
+
