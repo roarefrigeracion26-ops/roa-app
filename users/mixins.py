@@ -16,10 +16,23 @@ class TecnicoRequiredMixin(LoginRequiredMixin):
 
 
 class SupervisorRequiredMixin(LoginRequiredMixin):
-    """Solo usuarios con rol Supervisor. Técnicos se redirigen al escáner."""
+    """Permite supervisores y admin ROA; los técnicos van al inventario."""
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if getattr(request.user, 'rol', None) != Rol.SUPERVISOR:
+        es_supervisor = getattr(request.user, 'rol', None) == Rol.SUPERVISOR
+        if not (es_supervisor or request.user.is_staff or request.user.is_superuser):
+            return redirect('inventory:empresas')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class StaffRequiredMixin(LoginRequiredMixin):
+    """Solo admin ROA (staff o superusuario)."""
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not (request.user.is_staff or request.user.is_superuser):
+            if getattr(request.user, 'rol', None) == Rol.SUPERVISOR:
+                return redirect('analytics:dashboard')
             return redirect('inventory:empresas')
         return super().dispatch(request, *args, **kwargs)

@@ -16,6 +16,78 @@ class SupervisorEmpresasTests(TestCase):
         self.assertIn(empresa, supervisor.empresas_visibles.all())
 
 
+class PermisosEmpresasTests(TestCase):
+    def setUp(self):
+        self.empresa_a = Empresa.objects.create(nombre='Empresa A')
+        self.empresa_b = Empresa.objects.create(nombre='Empresa B')
+        self.empresa_inactiva = Empresa.objects.create(nombre='Empresa Inactiva', activo=False)
+        self.supervisor = Tecnico.objects.create_user(
+            username='sup_a', password='clave123', rol='supervisor'
+        )
+        self.supervisor.empresas_visibles.add(self.empresa_a, self.empresa_inactiva)
+        self.admin = Tecnico.objects.create_user(
+            username='admin_roa', password='clave123', rol='tecnico',
+            is_staff=True, is_superuser=True,
+        )
+        self.tecnico = Tecnico.objects.create_user(
+            username='tec_a', password='clave123', rol='tecnico'
+        )
+
+    def test_admin_ve_todas_las_empresas_activas(self):
+        from users.permissions import empresas_visibles
+        self.assertQuerySetEqual(
+            empresas_visibles(self.admin).order_by('nombre'),
+            [self.empresa_a, self.empresa_b],
+        )
+
+    def test_supervisor_ve_solo_sus_empresas_activas(self):
+        from users.permissions import empresas_visibles
+        self.assertQuerySetEqual(
+            empresas_visibles(self.supervisor),
+            [self.empresa_a],
+        )
+
+    def test_tecnico_no_ve_empresas(self):
+        from users.permissions import empresas_visibles
+        self.assertFalse(empresas_visibles(self.tecnico).exists())
+
+
+class RestriccionSupervisorTests(TestCase):
+    def setUp(self):
+        self.supervisor = Tecnico.objects.create_user(
+            username='sup_rest', password='clave123', rol='supervisor'
+        )
+        self.admin = Tecnico.objects.create_user(
+            username='admin_rest', password='clave123', rol='supervisor',
+            is_staff=True, is_superuser=True,
+        )
+        self.tecnico = Tecnico.objects.create_user(
+            username='tec_rest', password='clave123', rol='tecnico'
+        )
+
+    def test_supervisor_es_redirigido_de_inventario_a_reportes(self):
+        self.client.force_login(self.supervisor)
+        response = self.client.get(reverse('inventory:empresas'), secure=True)
+        self.assertRedirects(
+            response, reverse('analytics:dashboard'), fetch_redirect_response=False
+        )
+
+    def test_supervisor_accede_a_reportes(self):
+        self.client.force_login(self.supervisor)
+        response = self.client.get(reverse('analytics:dashboard'), secure=True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_staff_puede_acceder_a_inventario(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('inventory:empresas'), secure=True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_tecnico_no_se_ve_afectado(self):
+        self.client.force_login(self.tecnico)
+        response = self.client.get(reverse('inventory:empresas'), secure=True)
+        self.assertEqual(response.status_code, 200)
+
+
 class LandingAssetsTests(SimpleTestCase):
     def test_assets_de_la_landing_existen(self):
         nombres = [
