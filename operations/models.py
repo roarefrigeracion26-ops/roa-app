@@ -46,13 +46,13 @@ class OrdenServicio(models.Model):
         verbose_name='Tipo de mantenimiento'
     )
     radicado = models.CharField(
-        max_length=20, unique=True,
-        help_text='Ej: MP9167 o MC1234',
+        max_length=30, unique=True,
+        help_text='Ej: MP9167, MC1234 o alfanumérico',
         verbose_name='Radicado No.'
     )
     # Datos del encabezado / orden de servicio
     cliente_nombre = models.CharField(max_length=200, verbose_name='Cliente')
-    dir_cliente = models.CharField(max_length=300, blank=True, verbose_name='Dir. Cliente')
+    dir_cliente = models.CharField(max_length=500, blank=True, verbose_name='Dir. Cliente')
     fecha = models.DateField(verbose_name='Fecha')
     mes = models.CharField(max_length=20, blank=True, verbose_name='Mes')
 

@@ -17,13 +17,18 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
-from inventory.models import Cliente, EquipoAA
+from inventory.models import Cliente, EquipoAA, Empresa
 from operations import images
 from operations.models import (
     EstadoOrden, EquipoIntervenido, FotoEquipo, MomentoFoto,
     OrdenServicio, MAX_FOTOS_POR_MOMENTO,
 )
 from users.models import Tecnico
+
+
+def empresa_por_defecto():
+    empresa, _ = Empresa.objects.get_or_create(nombre='OLIMPICA S.A.')
+    return empresa
 
 
 def imagen_subida(nombre='foto.jpg', tamano=(800, 600), color=(20, 40, 60)):
@@ -82,7 +87,7 @@ class FotosViewsTests(TestCase):
     def setUp(self):
         self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
         self.otro = Tecnico.objects.create_user(username='otro', password='clave123')
-        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.cliente = Cliente.objects.create(empresa=empresa_por_defecto(), nombre='Tienda Uno')
         self.equipo = EquipoAA.objects.create(cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA')
         self.orden = OrdenServicio.objects.create(
             equipo=self.equipo,
@@ -672,7 +677,7 @@ class AdminFotosTests(TestCase):
             username='admin', email='admin@example.com', password='clave123',
         )
         self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
-        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.cliente = Cliente.objects.create(empresa=empresa_por_defecto(), nombre='Tienda Uno')
         self.equipo = EquipoAA.objects.create(
             cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA',
         )
@@ -749,7 +754,7 @@ class AdminFotosTests(TestCase):
 class LimiteConcurrenteTests(TransactionTestCase):
     def setUp(self):
         self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
-        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.cliente = Cliente.objects.create(empresa=empresa_por_defecto(), nombre='Tienda Uno')
         self.equipo = EquipoAA.objects.create(
             cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA',
         )
@@ -905,3 +910,87 @@ class MediaPatternsTests(TestCase):
         from config.urls import _media_patterns
 
         self.assertEqual(_media_patterns(), [])
+
+
+class MultiClienteOrdenTests(TestCase):
+    def setUp(self):
+        self.tecnico = Tecnico.objects.create_user(
+            username='tecnico_multi', password='password123', rol='tecnico'
+        )
+        self.empresa = Empresa.objects.create(nombre='Super Almacenes Éxito')
+        self.sede = Cliente.objects.create(
+            empresa=self.empresa,
+            codigo='EXT-01',
+            nombre='Éxito Murillo',
+            dir_cliente='Calle 45 # 23-10'
+        )
+
+    def test_nueva_orden_form_acepta_radicado_alfanumerico(self):
+        from operations.forms import NuevaOrdenForm
+        form = NuevaOrdenForm(data={
+            'tipo': 'MP',
+            'radicado_numero': 'OT-2026-X1',
+            'cliente_nombre': self.empresa.nombre,
+            'dir_cliente': f'{self.sede.nombre} — {self.sede.dir_cliente}',
+            'fecha': '2026-11-01',
+            'mes': 'Noviembre',
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.get_radicado(), 'OT-2026-X1')
+
+    def test_formulario_nueva_orden_no_restringe_radicado_a_numeros(self):
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('operations:nueva_orden_cliente', kwargs={'cliente_id': self.sede.pk})
+        response = client.get(url, secure=True)
+        html = response.content.decode()
+        self.assertNotIn('pattern="[0-9]*"', html)
+        self.assertNotIn('inputmode="numeric"', html)
+
+    def test_post_crea_orden_con_radicado_alfanumerico(self):
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('operations:nueva_orden_cliente', kwargs={'cliente_id': self.sede.pk})
+        response = client.post(url, {
+            'tipo': 'MP',
+            'radicado_numero': 'OT-2026-X1',
+            'cliente_nombre': self.empresa.nombre,
+            'dir_cliente': 'Éxito Murillo — Calle 45 # 23-10',
+            'fecha': '2026-11-01',
+            'mes': 'Noviembre',
+        }, secure=True)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(OrdenServicio.objects.filter(radicado='OT-2026-X1').exists())
+
+    def test_nueva_orden_cliente_view_precarga_empresa_y_sede(self):
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('operations:nueva_orden_cliente', kwargs={'cliente_id': self.sede.pk})
+        response = client.get(url, secure=True)
+        self.assertEqual(response.status_code, 200)
+        form = response.context['form']
+        self.assertEqual(form.initial['cliente_nombre'], 'Super Almacenes Éxito')
+        self.assertIn('Éxito Murillo', form.initial['dir_cliente'])
+        self.assertIn('Calle 45 # 23-10', form.initial['dir_cliente'])
+
+    def test_pdf_generacion_multi_cliente(self):
+        from operations.services import iniciar_orden
+        from operations.views import PDFOrdenView
+        orden = iniciar_orden(
+            tecnico=self.tecnico,
+            tipo='MP',
+            radicado='OT-2026-X1',
+            cliente_nombre='Super Almacenes Éxito',
+            dir_cliente='Éxito Murillo — Calle 45 # 23-10',
+            fecha=timezone.localdate(),
+            mes='Noviembre',
+            cliente=self.sede,
+        )
+        factory = RequestFactory()
+        request = factory.get(f'/orden/{orden.pk}/pdf/')
+        request.user = self.tecnico
+        respuesta = PDFOrdenView().get(request, orden_id=orden.pk)
+        self.assertEqual(respuesta['Content-Type'], 'application/pdf')
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
+

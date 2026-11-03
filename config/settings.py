@@ -2,6 +2,7 @@
 Django settings for ROA APP — SGMAA (Sistema de Gestión de Mantenimiento de Aire Acondicionado).
 """
 from pathlib import Path
+import sys
 
 import environ
 
@@ -54,7 +55,7 @@ if DATABASES['default'].get('ENGINE', '').endswith('postgresql'):
 
 AUTH_USER_MODEL = 'users.Tecnico'
 LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'inventory:clientes'
+LOGIN_REDIRECT_URL = 'inventory:empresas'
 LOGOUT_REDIRECT_URL = 'users:login'
 
 LANGUAGE_CODE = 'es-co'
@@ -80,7 +81,7 @@ STORAGES = {
         'OPTIONS': {},
     },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage' if 'test' in sys.argv else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
 
