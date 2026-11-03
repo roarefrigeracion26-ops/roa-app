@@ -2,7 +2,18 @@ from django.contrib.staticfiles import finders
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
+from inventory.models import Empresa
 from users.models import Tecnico
+
+
+class SupervisorEmpresasTests(TestCase):
+    def test_supervisor_puede_tener_empresas_visibles(self):
+        empresa = Empresa.objects.create(nombre='Empresa Test')
+        supervisor = Tecnico.objects.create_user(
+            username='sup_test', password='clave123', rol='supervisor'
+        )
+        supervisor.empresas_visibles.add(empresa)
+        self.assertIn(empresa, supervisor.empresas_visibles.all())
 
 
 class LandingAssetsTests(SimpleTestCase):

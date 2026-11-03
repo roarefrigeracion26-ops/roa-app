@@ -12,6 +12,12 @@ class Tecnico(AbstractUser):
     rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.TECNICO)
     activo = models.BooleanField(default=True)
     nombre_completo = models.CharField(max_length=200, blank=True)
+    empresas_visibles = models.ManyToManyField(
+        'inventory.Empresa',
+        blank=True,
+        related_name='supervisores',
+        verbose_name='Empresas visibles',
+    )
 
     class Meta:
         verbose_name = 'Técnico'

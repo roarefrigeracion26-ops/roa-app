@@ -7,9 +7,10 @@ from .models import Tecnico
 class TecnicoAdmin(BaseUserAdmin):
     list_display = ('username', 'nombre_completo', 'rol', 'activo', 'is_staff')
     list_filter = ('rol', 'activo')
+    filter_horizontal = ('empresas_visibles',)
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('SGMR', {'fields': ('rol', 'activo', 'nombre_completo')}),
+        ('SGMR', {'fields': ('rol', 'activo', 'nombre_completo', 'empresas_visibles')}),
     )
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        ('SGMR', {'fields': ('rol', 'activo', 'nombre_completo')}),
+        ('SGMR', {'fields': ('rol', 'activo', 'nombre_completo', 'empresas_visibles')}),
     )
