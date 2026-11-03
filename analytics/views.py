@@ -9,15 +9,12 @@ from django.utils import timezone
 from django.views.generic import TemplateView, View
 
 from users.mixins import SupervisorRequiredMixin
+from users.permissions import empresas_visibles
 from inventory.models import Cliente, EquipoAA
 from operations.models import OrdenServicio, TipoMantenimiento, EstadoOrden
 
 
-def _get_ordenes_queryset(request):
-    """Aplica filtros del dashboard a las órdenes."""
-    cliente_id = request.GET.get('cliente', '').strip()
-    equipo_id = request.GET.get('equipo', '').strip()
-    tipo = request.GET.get('tipo', '').strip()
+def _parse_fechas(request):
     fecha_inicio_str = request.GET.get('fecha_inicio', '').strip()
     fecha_fin_str = request.GET.get('fecha_fin', '').strip()
     fecha_inicio = None
@@ -35,13 +32,37 @@ def _get_ordenes_queryset(request):
         fecha_inicio = fecha_fin
     if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
         fecha_inicio, fecha_fin = fecha_fin, fecha_inicio
+    return fecha_inicio, fecha_fin
 
-    qs = OrdenServicio.objects.all().select_related('equipo', 'tecnico').only(
+
+def _filtrar_por_empresa(qs, empresa_id):
+    if not empresa_id:
+        return qs
+    return qs.filter(
+        models_Q(cliente__empresa_id=empresa_id)
+        | models_Q(equipo__cliente__empresa_id=empresa_id)
+    )
+
+
+def _get_ordenes_queryset(request):
+    """Aplica filtros y alcance por empresa a las órdenes."""
+    empresa_id = request.GET.get('empresa', '').strip()
+    cliente_id = request.GET.get('cliente', '').strip()
+    equipo_id = request.GET.get('equipo', '').strip()
+    tipo = request.GET.get('tipo', '').strip()
+    fecha_inicio, fecha_fin = _parse_fechas(request)
+
+    empresas = empresas_visibles(request.user)
+    qs = OrdenServicio.objects.filter(
+        models_Q(cliente__empresa__in=empresas)
+        | models_Q(equipo__cliente__empresa__in=empresas)
+    ).select_related('equipo', 'tecnico').only(
         'radicado', 'tipo', 'fecha', 'hora_inicio', 'hora_fin', 'cliente_nombre',
         'estado', 'equipo__nombre',
         'tecnico__nombre_completo', 'tecnico__username',
     )
 
+    qs = _filtrar_por_empresa(qs, empresa_id)
     if cliente_id:
         qs = qs.filter(
             models_Q(equipo__cliente_id=cliente_id) | models_Q(cliente_id=cliente_id)
@@ -65,11 +86,14 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         request = self.request
 
+        empresa_id = request.GET.get('empresa', '').strip()
         cliente_id = request.GET.get('cliente', '').strip()
         equipo_id = request.GET.get('equipo', '').strip()
         tipo = request.GET.get('tipo', '').strip()
         fecha_inicio_str = request.GET.get('fecha_inicio', '').strip()
         fecha_fin_str = request.GET.get('fecha_fin', '').strip()
+        fecha_inicio, fecha_fin = _parse_fechas(request)
+        empresas = list(empresas_visibles(request.user).order_by('nombre'))
 
         ordenes = _get_ordenes_queryset(request)
 
@@ -92,11 +116,21 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
             tipo=TipoMantenimiento.CORRECTIVO,
             estado=EstadoOrden.CERRADO,
             hora_fin__isnull=False,
+        ).filter(
+            models_Q(cliente__empresa__in=empresas)
+            | models_Q(equipo__cliente__empresa__in=empresas)
         )
+        correctivos_cerrados = _filtrar_por_empresa(correctivos_cerrados, empresa_id)
         if cliente_id:
-            correctivos_cerrados = correctivos_cerrados.filter(equipo__cliente_id=cliente_id)
+            correctivos_cerrados = correctivos_cerrados.filter(
+                models_Q(equipo__cliente_id=cliente_id) | models_Q(cliente_id=cliente_id)
+            )
         if equipo_id:
             correctivos_cerrados = correctivos_cerrados.filter(equipo_id=equipo_id)
+        if fecha_inicio:
+            correctivos_cerrados = correctivos_cerrados.filter(fecha__gte=fecha_inicio)
+        if fecha_fin:
+            correctivos_cerrados = correctivos_cerrados.filter(fecha__lte=fecha_fin)
         if correctivos_cerrados.exists():
             dur_expr = ExpressionWrapper(F('hora_fin') - F('hora_inicio'), output_field=DurationField())
             agg = correctivos_cerrados.annotate(dur=dur_expr).aggregate(promedio=Avg('dur'))
@@ -118,13 +152,25 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
         context['params'] = params.urlencode()
 
         # Selectores
-        clientes = list(Cliente.objects.filter(activo=True).order_by('nombre'))
-        context['clientes'] = clientes
-        equipos_qs = EquipoAA.objects.filter(activo=True)
+        context['empresas'] = empresas
+        clientes = Cliente.objects.filter(
+            activo=True, empresa__in=empresas
+        ).select_related('empresa').order_by('empresa__nombre', 'nombre')
+        if empresa_id:
+            clientes = clientes.filter(empresa_id=empresa_id)
+        context['clientes'] = list(clientes)
+        equipos_qs = EquipoAA.objects.filter(activo=True, cliente__empresa__in=empresas)
+        if empresa_id:
+            equipos_qs = equipos_qs.filter(cliente__empresa_id=empresa_id)
         if cliente_id:
             equipos_qs = equipos_qs.filter(cliente_id=cliente_id)
         context['equipos'] = list(equipos_qs.order_by('nombre'))
         context['tipos'] = TipoMantenimiento.choices
+
+        try:
+            context['empresa_seleccionada'] = int(empresa_id)
+        except ValueError:
+            context['empresa_seleccionada'] = empresa_id
 
         try:
             context['cliente_seleccionado'] = int(cliente_id)
