@@ -944,3 +944,24 @@ class MultiClienteOrdenTests(TestCase):
         self.assertIn('Éxito Murillo', form.initial['dir_cliente'])
         self.assertIn('Calle 45 # 23-10', form.initial['dir_cliente'])
 
+    def test_pdf_generacion_multi_cliente(self):
+        from operations.services import iniciar_orden
+        from operations.views import PDFOrdenView
+        orden = iniciar_orden(
+            tecnico=self.tecnico,
+            tipo='MP',
+            radicado='OT-2026-X1',
+            cliente_nombre='Super Almacenes Éxito',
+            dir_cliente='Éxito Murillo — Calle 45 # 23-10',
+            fecha=timezone.localdate(),
+            mes='Noviembre',
+            cliente=self.sede,
+        )
+        factory = RequestFactory()
+        request = factory.get(f'/orden/{orden.pk}/pdf/')
+        request.user = self.tecnico
+        respuesta = PDFOrdenView().get(request, orden_id=orden.pk)
+        self.assertEqual(respuesta['Content-Type'], 'application/pdf')
+        self.assertTrue(respuesta.content.startswith(b'%PDF-'))
+
+
