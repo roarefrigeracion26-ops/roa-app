@@ -25,8 +25,7 @@ class Empresa(models.Model):
 class Cliente(models.Model):
     """Sede, tienda o sucursal donde están instalados los equipos de AA."""
     empresa = models.ForeignKey(
-        Empresa, on_delete=models.PROTECT, related_name='sedes',
-        null=True, blank=True
+        Empresa, on_delete=models.PROTECT, related_name='sedes'
     )
     codigo = models.CharField(
         max_length=50, blank=True, default='',

@@ -66,7 +66,7 @@ class NuevaOrdenForm(forms.Form):
         widget=_text_input('Ej: OLIMPICA S.A. o Nombre del Cliente'),
     )
     dir_cliente = forms.CharField(
-        max_length=300, label='Dir. Cliente', required=False,
+        max_length=500, label='Dir. Cliente', required=False,
         widget=_text_input('Ej: Sede Norte — Calle 80'),
     )
     fecha = forms.DateField(

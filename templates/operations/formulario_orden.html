@@ -150,7 +150,7 @@
     {% if equipo %}
     <a href="{% url 'inventory:equipos_cliente' equipo.cliente.pk %}" class="btn btn-sm btn-outline-secondary">
         {% else %}
-        <a href="{% url 'inventory:clientes' %}" class="btn btn-sm btn-outline-secondary">
+        <a href="{% url 'inventory:empresas' %}" class="btn btn-sm btn-outline-secondary">
             {% endif %}
             <i class="bi bi-house-door"></i>
         </a>

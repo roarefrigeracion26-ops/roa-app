@@ -1,5 +1,5 @@
 from django.test import TestCase
-from inventory.models import Empresa, Cliente, TipoEquipo, EquipoAA
+from inventory.models import Empresa, Cliente
 
 
 class EmpresaModelTest(TestCase):
@@ -33,6 +33,9 @@ class EmpresaModelTest(TestCase):
         self.assertEqual(sede.codigo, "")
         self.assertIn("Sede Recreo", str(sede))
         self.assertIn("Bodytech", str(sede))
+
+    def test_sede_requiere_empresa(self):
+        self.assertFalse(Cliente._meta.get_field('empresa').null)
 
 
 class EmpresaViewTest(TestCase):
@@ -75,6 +78,16 @@ class EmpresaViewTest(TestCase):
         self.assertContains(response, "Sede 1")
         self.assertContains(response, "Sede 2")
         self.assertNotContains(response, "Sede Otra Empresa")
+
+    def test_ruta_legacy_clientes_redirige_a_empresas(self):
+        from django.test import Client
+        from django.urls import reverse
+        client = Client()
+        client.force_login(self.tecnico)
+        response = client.get(reverse('inventory:clientes'), secure=True)
+        self.assertRedirects(
+            response, reverse('inventory:empresas'), fetch_redirect_response=False
+        )
 
 
 class AdminEmpresaTest(TestCase):

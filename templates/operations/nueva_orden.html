@@ -56,30 +56,21 @@ Nueva Orden —
     <!-- Radicado -->
     <div class="card mb-3">
         <div class="card-header-roa">
-            <i class="bi bi-hash me-1"></i>Ingresar Número de {% if es_mp_tienda %}MP{% else %}MC{% endif %}
+            <i class="bi bi-hash me-1"></i>Ingresar Radicado
         </div>
         <div class="card-body">
             <label class="form-label">Radicado No. <span class="text-danger">*</span></label>
-            <div class="input-group">
-                {% if es_mp_tienda %}
-                <span class="input-group-text fw-bold text-white bg-primary" id="radicado-prefix"
-                    style="font-size:1rem;">
-                    MP
-                </span>
-                <input type="text" name="radicado_numero" class="form-control fs-5 fw-bold" inputmode="numeric"
-                    pattern="[0-9]*" placeholder="9167" required value="{{ form.radicado_numero.value|default:'' }}"
-                    style="letter-spacing:2px;">
-                {% else %}
-                <span class="input-group-text fw-bold text-dark bg-warning" id="radicado-prefix"
-                    style="font-size:1rem;">
-                    MC
-                </span>
-                <input type="text" name="radicado_numero" class="form-control fs-5 fw-bold" inputmode="numeric"
-                    pattern="[0-9]*" placeholder="1234" required value="{{ form.radicado_numero.value|default:'' }}"
-                    style="letter-spacing:2px;">
-                {% endif %}
+            <input type="text" name="radicado_numero" id="id_radicado_numero"
+                class="form-control fs-5 fw-bold" maxlength="30" required
+                placeholder="Ej: MP9167, MC0452 u OT-2026-X1"
+                value="{{ form.radicado_numero.value|default:'' }}" style="letter-spacing:2px;">
+            <div class="form-text">
+                Digita el número o el código completo del talonario. Si escribes solo dígitos,
+                el sistema agregará el prefijo MP/MC según el tipo de mantenimiento.
             </div>
-            <div class="form-text">Solo los números, el sistema asignará el prefijo.</div>
+            {% if form.radicado_numero.errors %}
+            <div class="text-danger small mt-1">{{ form.radicado_numero.errors|join:", " }}</div>
+            {% endif %}
         </div>
     </div>
 

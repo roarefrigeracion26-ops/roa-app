@@ -52,6 +52,21 @@ from .forms import (
 )
 
 
+def _sugerir_radicado(tipo):
+    """Sugiere el siguiente consecutivo solo para radicados MP/MC numéricos."""
+    import re
+    ultima = (
+        OrdenServicio.objects
+        .filter(tipo=tipo, radicado__regex=rf'^{tipo}\d+$')
+        .order_by('-id')
+        .first()
+    )
+    if not ultima:
+        return ''
+    coincidencia = re.match(rf'^{tipo}(\d+)$', ultima.radicado)
+    return str(int(coincidencia.group(1)) + 1) if coincidencia else ''
+
+
 # ─────────────────────────────────────────────────────────
 # Helper: xhtml2pdf link callback
 # ─────────────────────────────────────────────────────────
@@ -140,14 +155,7 @@ class NuevaOrdenClienteView(LoginRequiredMixin, View):
                 'cliente_bloqueo': cliente, # Usamos cliente en vez de equipo para el contexto
             })
             
-        # Sugerir el último radicado + 1
-        ultima_orden = OrdenServicio.objects.filter(tipo='MP').order_by('-radicado').first()
-        sug_numero = ""
-        if ultima_orden:
-            import re
-            m = re.search(r'\d+', ultima_orden.radicado)
-            if m and m.group():
-                sug_numero = str(int(m.group()) + 1)
+        sug_numero = _sugerir_radicado('MP')
 
         nombre_empresa = cliente.empresa.nombre if cliente.empresa else cliente.nombre
         if cliente.empresa:
@@ -230,14 +238,7 @@ class NuevaOrdenView(LoginRequiredMixin, View):
                 'correctivos_abiertos': correctivos_abiertos,
             })
 
-        # Sugerir el último radicado + 1 para MC
-        ultima_orden = OrdenServicio.objects.filter(tipo='MC').order_by('-radicado').first()
-        sug_numero = ""
-        if ultima_orden:
-            import re
-            m = re.search(r'\d+', ultima_orden.radicado)
-            if m and m.group():
-                sug_numero = str(int(m.group()) + 1)
+        sug_numero = _sugerir_radicado('MC')
 
         sede = equipo.cliente
         nombre_empresa = sede.empresa.nombre if sede.empresa else sede.nombre
@@ -812,9 +813,12 @@ class CancelarOrdenView(LoginRequiredMixin, View):
 
     def post(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id, tecnico=request.user)
+        cliente = orden.cliente or (orden.equipo.cliente if orden.equipo else None)
         if orden.estado == EstadoOrden.ABIERTO:
             orden.delete()
-        return redirect('inventory:clientes')
+        if cliente and cliente.empresa_id:
+            return redirect('inventory:sedes_empresa', empresa_id=cliente.empresa_id)
+        return redirect('inventory:empresas')
 
 
 # ─────────────────────────────────────────────────────────

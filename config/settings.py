@@ -55,7 +55,7 @@ if DATABASES['default'].get('ENGINE', '').endswith('postgresql'):
 
 AUTH_USER_MODEL = 'users.Tecnico'
 LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'inventory:clientes'
+LOGIN_REDIRECT_URL = 'inventory:empresas'
 LOGOUT_REDIRECT_URL = 'users:login'
 
 LANGUAGE_CODE = 'es-co'

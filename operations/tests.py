@@ -26,6 +26,11 @@ from operations.models import (
 from users.models import Tecnico
 
 
+def empresa_por_defecto():
+    empresa, _ = Empresa.objects.get_or_create(nombre='OLIMPICA S.A.')
+    return empresa
+
+
 def imagen_subida(nombre='foto.jpg', tamano=(800, 600), color=(20, 40, 60)):
     """Devuelve un SimpleUploadedFile JPEG válido."""
     buffer = io.BytesIO()
@@ -82,7 +87,7 @@ class FotosViewsTests(TestCase):
     def setUp(self):
         self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
         self.otro = Tecnico.objects.create_user(username='otro', password='clave123')
-        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.cliente = Cliente.objects.create(empresa=empresa_por_defecto(), nombre='Tienda Uno')
         self.equipo = EquipoAA.objects.create(cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA')
         self.orden = OrdenServicio.objects.create(
             equipo=self.equipo,
@@ -672,7 +677,7 @@ class AdminFotosTests(TestCase):
             username='admin', email='admin@example.com', password='clave123',
         )
         self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
-        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.cliente = Cliente.objects.create(empresa=empresa_por_defecto(), nombre='Tienda Uno')
         self.equipo = EquipoAA.objects.create(
             cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA',
         )
@@ -749,7 +754,7 @@ class AdminFotosTests(TestCase):
 class LimiteConcurrenteTests(TransactionTestCase):
     def setUp(self):
         self.tecnico = Tecnico.objects.create_user(username='tec', password='clave123')
-        self.cliente = Cliente.objects.create(nombre='Tienda Uno')
+        self.cliente = Cliente.objects.create(empresa=empresa_por_defecto(), nombre='Tienda Uno')
         self.equipo = EquipoAA.objects.create(
             cliente=self.cliente, nombre='UCA 1', tipo_equipo='UCA',
         )
@@ -932,6 +937,30 @@ class MultiClienteOrdenTests(TestCase):
         })
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.get_radicado(), 'OT-2026-X1')
+
+    def test_formulario_nueva_orden_no_restringe_radicado_a_numeros(self):
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('operations:nueva_orden_cliente', kwargs={'cliente_id': self.sede.pk})
+        response = client.get(url, secure=True)
+        html = response.content.decode()
+        self.assertNotIn('pattern="[0-9]*"', html)
+        self.assertNotIn('inputmode="numeric"', html)
+
+    def test_post_crea_orden_con_radicado_alfanumerico(self):
+        client = Client()
+        client.force_login(self.tecnico)
+        url = reverse('operations:nueva_orden_cliente', kwargs={'cliente_id': self.sede.pk})
+        response = client.post(url, {
+            'tipo': 'MP',
+            'radicado_numero': 'OT-2026-X1',
+            'cliente_nombre': self.empresa.nombre,
+            'dir_cliente': 'Éxito Murillo — Calle 45 # 23-10',
+            'fecha': '2026-11-01',
+            'mes': 'Noviembre',
+        }, secure=True)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(OrdenServicio.objects.filter(radicado='OT-2026-X1').exists())
 
     def test_nueva_orden_cliente_view_precarga_empresa_y_sede(self):
         client = Client()
