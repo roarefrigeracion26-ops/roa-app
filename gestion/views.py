@@ -90,8 +90,8 @@ class SedeListView(StaffRequiredMixin, ListView):
             'empresa__nombre', 'nombre'
         )
         empresa_id = self.request.GET.get('empresa', '').strip()
-        if empresa_id:
-            queryset = queryset.filter(empresa_id=empresa_id)
+        if empresa_id.isdigit():
+            queryset = queryset.filter(empresa_id=int(empresa_id))
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -193,7 +193,8 @@ class SupervisorToggleView(StaffRequiredMixin, View):
     def post(self, request, pk):
         supervisor = get_object_or_404(Tecnico, pk=pk, rol=Rol.SUPERVISOR)
         supervisor.activo = not supervisor.activo
-        supervisor.save(update_fields=['activo'])
+        supervisor.is_active = supervisor.activo
+        supervisor.save(update_fields=['activo', 'is_active'])
         estado = 'activado' if supervisor.activo else 'desactivado'
         messages.success(request, f'Supervisor {estado} correctamente.')
         return redirect('gestion:supervisores')

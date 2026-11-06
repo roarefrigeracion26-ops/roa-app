@@ -87,6 +87,21 @@ class RestriccionSupervisorTests(TestCase):
         response = self.client.get(reverse('inventory:empresas'), secure=True)
         self.assertEqual(response.status_code, 200)
 
+    def test_admin_staff_tecnico_ingresa_a_reportes(self):
+        admin_tecnico = Tecnico.objects.create_user(
+            username='admin_tec', password='clave123', rol='tecnico',
+            is_staff=True,
+        )
+        response = self.client.post(
+            reverse('users:login'),
+            {'username': admin_tecnico.username, 'password': 'clave123'},
+            secure=True,
+        )
+        self.assertRedirects(
+            response, reverse('analytics:dashboard'),
+            fetch_redirect_response=False,
+        )
+
 
 class LandingAssetsTests(SimpleTestCase):
     def test_assets_de_la_landing_existen(self):

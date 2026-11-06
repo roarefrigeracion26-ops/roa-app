@@ -994,3 +994,55 @@ class MultiClienteOrdenTests(TestCase):
         self.assertTrue(respuesta.content.startswith(b'%PDF-'))
 
 
+
+class PDFAutorizacionScopingTests(TestCase):
+    def setUp(self):
+        from operations.services import iniciar_orden
+        from operations.views import PDFOrdenView
+        self.pdf_view = PDFOrdenView
+        self.empresa_a = Empresa.objects.create(nombre='Empresa PDF A')
+        self.empresa_b = Empresa.objects.create(nombre='Empresa PDF B')
+        self.sede_a = Cliente.objects.create(empresa=self.empresa_a, nombre='Sede PDF A')
+        self.sede_b = Cliente.objects.create(empresa=self.empresa_b, nombre='Sede PDF B')
+        self.equipo_a = EquipoAA.objects.create(
+            cliente=self.sede_a, nombre='UCA PDF A', tipo_equipo='UCA'
+        )
+        self.equipo_b = EquipoAA.objects.create(
+            cliente=self.sede_b, nombre='UCA PDF B', tipo_equipo='UCA'
+        )
+        self.tecnico = Tecnico.objects.create_user(
+            username='tec_pdf', password='clave123', rol='tecnico'
+        )
+        self.supervisor = Tecnico.objects.create_user(
+            username='sup_pdf', password='clave123', rol='supervisor'
+        )
+        self.supervisor.empresas_visibles.add(self.empresa_a)
+        self.orden_a = iniciar_orden(
+            tecnico=self.tecnico, tipo='MP', radicado='MP-PDF-A',
+            cliente_nombre='Sede PDF A', dir_cliente='Calle A',
+            fecha=timezone.localdate(), mes='Noviembre', cliente=self.sede_a,
+        )
+        self.orden_b = iniciar_orden(
+            tecnico=self.tecnico, tipo='MC', radicado='MC-PDF-B',
+            cliente_nombre='Sede PDF B', dir_cliente='Calle B',
+            fecha=timezone.localdate(), mes='Noviembre',
+            equipo=self.equipo_b, cliente=self.sede_b,
+        )
+
+    def _request(self, user, orden):
+        request = RequestFactory().get(f'/orden/{orden.pk}/pdf/')
+        request.user = user
+        return request
+
+    def test_supervisor_no_accede_pdf_de_empresa_ajena(self):
+        response = self.pdf_view().get(
+            self._request(self.supervisor, self.orden_b), orden_id=self.orden_b.pk
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_supervisor_accede_pdf_de_su_empresa(self):
+        response = self.pdf_view().get(
+            self._request(self.supervisor, self.orden_a), orden_id=self.orden_a.pk
+        )
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(response.content.startswith(b'%PDF-'))

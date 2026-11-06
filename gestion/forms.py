@@ -32,7 +32,7 @@ class SedeForm(forms.ModelForm):
 
 class SupervisorCreateForm(UserCreationForm):
     empresas_visibles = forms.ModelMultipleChoiceField(
-        queryset=Empresa.objects.order_by('nombre'),
+        queryset=Empresa.objects.filter(activo=True).order_by('nombre'),
         widget=forms.CheckboxSelectMultiple,
         required=True,
         label='Empresas visibles',
@@ -61,6 +61,7 @@ class SupervisorCreateForm(UserCreationForm):
     def save(self, commit=True):
         usuario = super().save(commit=False)
         usuario.rol = Rol.SUPERVISOR
+        usuario.is_active = usuario.activo
         if commit:
             usuario.save()
             self.save_m2m()
@@ -69,7 +70,7 @@ class SupervisorCreateForm(UserCreationForm):
 
 class SupervisorUpdateForm(forms.ModelForm):
     empresas_visibles = forms.ModelMultipleChoiceField(
-        queryset=Empresa.objects.order_by('nombre'),
+        queryset=Empresa.objects.filter(activo=True).order_by('nombre'),
         widget=forms.CheckboxSelectMultiple,
         required=True,
         label='Empresas visibles',
@@ -93,6 +94,10 @@ class SupervisorUpdateForm(forms.ModelForm):
     def save(self, commit=True):
         usuario = super().save(commit=False)
         usuario.rol = Rol.SUPERVISOR
+        usuario.is_active = usuario.activo
+        usuario.nombre_completo = (
+            f'{usuario.first_name or ""} {usuario.last_name or ""}'.strip()
+        )
         if commit:
             usuario.save()
             self.save_m2m()

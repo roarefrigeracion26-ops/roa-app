@@ -28,6 +28,8 @@ SPANISH_MONTHS = {
 }
 
 from inventory.models import EquipoAA
+from users.models import Rol
+from users.permissions import empresas_visibles
 from .models import (
     OrdenServicio, EquipoIntervenido, MedicionUCA, MedicionSplit,
     MedicionCondensadoraRack, Actividad, Observacion, TipoMantenimiento, EstadoOrden,
@@ -618,6 +620,29 @@ class CompletarEquipoDespuesView(LoginRequiredMixin, View):
         return redirect('operations:formulario_orden', orden_id=orden.pk)
 
 
+def _empresa_id_orden(orden):
+    """Empresa asociada a la orden (cliente directo o sede del equipo)."""
+    if orden.cliente_id and orden.cliente.empresa_id:
+        return orden.cliente.empresa_id
+    if orden.equipo_id and orden.equipo.cliente_id:
+        return orden.equipo.cliente.empresa_id
+    return None
+
+
+def _puede_ver_orden(user, orden):
+    """Autorización a nivel de objeto para técnicos, supervisores y admin ROA."""
+    if orden.tecnico_id == user.pk:
+        return True
+    if user.is_staff or user.is_superuser:
+        return True
+    if getattr(user, 'rol', None) == Rol.SUPERVISOR:
+        empresa_id = _empresa_id_orden(orden)
+        return bool(empresa_id) and empresas_visibles(user).filter(
+            pk=empresa_id
+        ).exists()
+    return False
+
+
 # ─────────────────────────────────────────────────────────
 # Helpers de fotos: respuesta JSON para fetches, HTML del bloque reutilizable
 # ─────────────────────────────────────────────────────────
@@ -671,7 +696,7 @@ class SubirFotosView(LoginRequiredMixin, View):
 
     def post(self, request, orden_id, equipo_id, momento):
         orden = get_object_or_404(OrdenServicio, pk=orden_id)
-        if orden.tecnico != request.user and not request.user.is_supervisor:
+        if not _puede_ver_orden(request.user, orden):
             return HttpResponse('No autorizado', status=403)
         if orden.estado != EstadoOrden.ABIERTO:
             aviso = 'No se pueden agregar fotos a una orden cerrada.'
@@ -749,7 +774,7 @@ class EliminarFotoView(LoginRequiredMixin, View):
 
     def post(self, request, orden_id, foto_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id)
-        if orden.tecnico != request.user and not request.user.is_supervisor:
+        if not _puede_ver_orden(request.user, orden):
             return HttpResponse('No autorizado', status=403)
         if orden.estado != EstadoOrden.ABIERTO:
             aviso = 'No se pueden eliminar fotos de una orden cerrada.'
@@ -843,7 +868,7 @@ class PDFOrdenView(LoginRequiredMixin, View):
 
     def get(self, request, orden_id):
         orden = get_object_or_404(OrdenServicio, pk=orden_id)
-        if orden.tecnico != request.user and not request.user.is_supervisor:
+        if not _puede_ver_orden(request.user, orden):
             return HttpResponse('No autorizado', status=403)
         equipos_intervenidos = orden.equipos_intervenidos.prefetch_related(
             'mediciones_uca', 'medicion_split', 'medicion_condensadora_rack', 'observacion', 'fotos'

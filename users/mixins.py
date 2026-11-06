@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Rol
+from .permissions import es_admin_roa
 
 
 class TecnicoRequiredMixin(LoginRequiredMixin):
@@ -21,7 +22,7 @@ class SupervisorRequiredMixin(LoginRequiredMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         es_supervisor = getattr(request.user, 'rol', None) == Rol.SUPERVISOR
-        if not (es_supervisor or request.user.is_staff or request.user.is_superuser):
+        if not (es_supervisor or es_admin_roa(request.user)):
             return redirect('inventory:empresas')
         return super().dispatch(request, *args, **kwargs)
 
@@ -31,7 +32,7 @@ class StaffRequiredMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not (request.user.is_staff or request.user.is_superuser):
+        if not es_admin_roa(request.user):
             if getattr(request.user, 'rol', None) == Rol.SUPERVISOR:
                 return redirect('analytics:dashboard')
             return redirect('inventory:empresas')

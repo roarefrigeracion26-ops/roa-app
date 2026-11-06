@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from inventory.models import Cliente, Empresa
@@ -26,10 +26,27 @@ class GestionAccessTests(TestCase):
         )
 
     def test_supervisor_es_redirigido(self):
+        empresa = Empresa.objects.create(nombre='Empresa Permisos')
         self.client.force_login(self.supervisor)
-        response = self.client.get(reverse('gestion:index'), secure=True)
+        for url in [
+            reverse('gestion:index'),
+            reverse('gestion:empresas'),
+            reverse('gestion:empresa_crear'),
+            reverse('gestion:sedes'),
+            reverse('gestion:supervisores'),
+        ]:
+            with self.subTest(url=url):
+                response = self.client.get(url, secure=True)
+                self.assertRedirects(
+                    response, reverse('analytics:dashboard'),
+                    fetch_redirect_response=False,
+                )
+        response = self.client.post(
+            reverse('gestion:empresa_toggle', args=[empresa.pk]), secure=True
+        )
         self.assertRedirects(
-            response, reverse('analytics:dashboard'), fetch_redirect_response=False
+            response, reverse('analytics:dashboard'),
+            fetch_redirect_response=False,
         )
 
     def test_admin_accede_a_index_y_listados(self):
@@ -164,3 +181,58 @@ class GestionSupervisorTests(TestCase):
         )
         self.assertRedirects(response, reverse('gestion:supervisores'), fetch_redirect_response=False)
         self.assertCountEqual(supervisor.empresas_visibles.all(), [self.empresa_b])
+
+    def test_desactivar_supervisor_revoca_su_sesion(self):
+        supervisor = Tecnico.objects.create_user(
+            username='sup_sesion', password='clave123', rol=Rol.SUPERVISOR,
+        )
+        supervisor.empresas_visibles.add(self.empresa_a)
+        supervisor_client = Client()
+        supervisor_client.force_login(supervisor)
+        self.assertEqual(
+            supervisor_client.get(
+                reverse('analytics:dashboard'), secure=True
+            ).status_code,
+            200,
+        )
+
+        response = self.client.post(
+            reverse('gestion:supervisor_toggle', args=[supervisor.pk]),
+            secure=True,
+        )
+        self.assertRedirects(
+            response, reverse('gestion:supervisores'),
+            fetch_redirect_response=False,
+        )
+        supervisor.refresh_from_db()
+        self.assertFalse(supervisor.activo)
+        self.assertFalse(supervisor.is_active)
+        response = supervisor_client.get(
+            reverse('analytics:dashboard'), secure=True
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_editar_nombre_actualiza_nombre_completo(self):
+        supervisor = Tecnico.objects.create_user(
+            username='sup_nombre', password='clave123', rol=Rol.SUPERVISOR,
+            first_name='Nombre', last_name='Anterior',
+        )
+        supervisor.empresas_visibles.add(self.empresa_a)
+        response = self.client.post(
+            reverse('gestion:supervisor_editar', args=[supervisor.pk]),
+            {
+                'username': 'sup_nombre',
+                'first_name': 'Ana',
+                'last_name': 'Pérez',
+                'email': '',
+                'activo': 'on',
+                'empresas_visibles': [self.empresa_a.pk],
+            },
+            secure=True,
+        )
+        self.assertRedirects(
+            response, reverse('gestion:supervisores'),
+            fetch_redirect_response=False,
+        )
+        supervisor.refresh_from_db()
+        self.assertEqual(supervisor.nombre_completo, 'Ana Pérez')

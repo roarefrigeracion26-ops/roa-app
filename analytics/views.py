@@ -5,7 +5,6 @@ from io import StringIO
 from django.core.paginator import Paginator
 from django.db.models import Avg, F, ExpressionWrapper, Count, DurationField, Q as models_Q
 from django.http import HttpResponse
-from django.utils import timezone
 from django.views.generic import TemplateView, View
 
 from users.mixins import SupervisorRequiredMixin
@@ -35,6 +34,13 @@ def _parse_fechas(request):
     return fecha_inicio, fecha_fin
 
 
+def _parse_id(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _filtrar_por_empresa(qs, empresa_id):
     if not empresa_id:
         return qs
@@ -46,9 +52,9 @@ def _filtrar_por_empresa(qs, empresa_id):
 
 def _get_ordenes_queryset(request):
     """Aplica filtros y alcance por empresa a las órdenes."""
-    empresa_id = request.GET.get('empresa', '').strip()
-    cliente_id = request.GET.get('cliente', '').strip()
-    equipo_id = request.GET.get('equipo', '').strip()
+    empresa_id = _parse_id(request.GET.get('empresa', '').strip())
+    cliente_id = _parse_id(request.GET.get('cliente', '').strip())
+    equipo_id = _parse_id(request.GET.get('equipo', '').strip())
     tipo = request.GET.get('tipo', '').strip()
     fecha_inicio, fecha_fin = _parse_fechas(request)
 
@@ -86,9 +92,9 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         request = self.request
 
-        empresa_id = request.GET.get('empresa', '').strip()
-        cliente_id = request.GET.get('cliente', '').strip()
-        equipo_id = request.GET.get('equipo', '').strip()
+        empresa_id = _parse_id(request.GET.get('empresa', '').strip())
+        cliente_id = _parse_id(request.GET.get('cliente', '').strip())
+        equipo_id = _parse_id(request.GET.get('equipo', '').strip())
         tipo = request.GET.get('tipo', '').strip()
         fecha_inicio_str = request.GET.get('fecha_inicio', '').strip()
         fecha_fin_str = request.GET.get('fecha_fin', '').strip()
@@ -167,20 +173,9 @@ class DashboardView(SupervisorRequiredMixin, TemplateView):
         context['equipos'] = list(equipos_qs.order_by('nombre'))
         context['tipos'] = TipoMantenimiento.choices
 
-        try:
-            context['empresa_seleccionada'] = int(empresa_id)
-        except ValueError:
-            context['empresa_seleccionada'] = empresa_id
-
-        try:
-            context['cliente_seleccionado'] = int(cliente_id)
-        except ValueError:
-            context['cliente_seleccionado'] = cliente_id
-
-        try:
-            context['equipo_seleccionado'] = int(equipo_id)
-        except ValueError:
-            context['equipo_seleccionado'] = equipo_id
+        context['empresa_seleccionada'] = empresa_id
+        context['cliente_seleccionado'] = cliente_id
+        context['equipo_seleccionado'] = equipo_id
 
         context['tipo_seleccionado'] = tipo
         context['fecha_inicio_seleccionada'] = fecha_inicio_str

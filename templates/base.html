@@ -227,11 +227,12 @@
           <i class="bi bi-gear"></i> Gestión
         </a>
         {% endif %}
-        {% if user.is_supervisor %}
+        {% if user.is_supervisor or user.is_staff or user.is_superuser %}
         <a class="btn btn-outline-light btn-sm" href="{% url 'analytics:dashboard' %}">
           <i class="bi bi-bar-chart-line"></i> Reportes
         </a>
-        {% else %}
+        {% endif %}
+        {% if not user.is_supervisor %}
         <a class="btn btn-outline-light btn-sm" href="{% url 'inventory:empresas' %}">
           <i class="bi bi-house-door"></i> Inicio
         </a>

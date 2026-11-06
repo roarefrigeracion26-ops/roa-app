@@ -118,3 +118,12 @@ class ReportesScopingTests(TestCase):
         response = self.client.get(reverse('analytics:dashboard'), secure=True)
         pdf_url = reverse('operations:pdf_orden', args=[self.orden_mc_a.pk])
         self.assertNotContains(response, pdf_url)
+
+    def test_parametros_de_filtro_invalidos_no_rompen(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('analytics:dashboard'),
+            {'empresa': 'abc', 'cliente': 'x', 'equipo': 'y'},
+            secure=True,
+        )
+        self.assertEqual(response.status_code, 200)
