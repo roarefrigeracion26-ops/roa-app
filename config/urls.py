@@ -21,6 +21,7 @@ urlpatterns = [
     path('', include('inventory.urls')),
     path('', include('operations.urls')),
     path('', include('analytics.urls')),
+    path('gestion/', include('gestion.urls')),
 ]
 
 urlpatterns += _media_patterns()

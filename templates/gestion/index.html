@@ -1,0 +1,53 @@
+{% extends "gestion/base_gestion.html" %}
+
+{% block title %}Gestión{% endblock %}
+
+{% block gestion_content %}
+<div class="row g-3">
+  <div class="col-md-4">
+    <a href="{% url 'gestion:empresas' %}" class="text-decoration-none">
+      <div class="card h-100 equipo-card p-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="section-title mb-1">Empresas</div>
+            <div class="display-6 fw-bold" style="color: var(--roa-blue);">{{ total_empresas }}</div>
+          </div>
+          <i class="bi bi-buildings display-6" style="color: var(--roa-gold);"></i>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gestion:sedes' %}" class="text-decoration-none">
+      <div class="card h-100 equipo-card p-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="section-title mb-1">Sedes</div>
+            <div class="display-6 fw-bold" style="color: var(--roa-blue);">{{ total_sedes }}</div>
+          </div>
+          <i class="bi bi-geo-alt display-6" style="color: var(--roa-gold);"></i>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{% url 'gestion:supervisores' %}" class="text-decoration-none">
+      <div class="card h-100 equipo-card p-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="section-title mb-1">Supervisores</div>
+            <div class="display-6 fw-bold" style="color: var(--roa-blue);">{{ total_supervisores }}</div>
+          </div>
+          <i class="bi bi-person-badge display-6" style="color: var(--roa-gold);"></i>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="alert alert-light border mt-4 mb-0 small text-muted">
+  <i class="bi bi-info-circle"></i>
+  Los supervisores solo podrán consultar los reportes de las empresas que tengan asignadas.
+  Para funciones avanzadas puede usar el <a href="{% url 'admin:index' %}">panel de administración</a>.
+</div>
+{% endblock %}

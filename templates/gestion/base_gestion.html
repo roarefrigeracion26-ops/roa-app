@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <a href="{% url 'gestion:index' %}" class="text-decoration-none small text-muted">
+      <i class="bi bi-arrow-left"></i> Gestión
+    </a>
+    <h1 class="h4 mb-0 fw-bold" style="color: var(--roa-blue);">Administración</h1>
+  </div>
+</div>
+
+<ul class="nav nav-pills mb-4 gap-2">
+  <li class="nav-item">
+    <a class="nav-link {% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"
+      href="{% url 'gestion:empresas' %}">
+      <i class="bi bi-buildings"></i> Empresas
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if 'sede' in request.resolver_match.url_name %}active{% endif %}"
+      href="{% url 'gestion:sedes' %}">
+      <i class="bi bi-geo-alt"></i> Sedes
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if 'supervisor' in request.resolver_match.url_name %}active{% endif %}"
+      href="{% url 'gestion:supervisores' %}">
+      <i class="bi bi-person-badge"></i> Supervisores
+    </a>
+  </li>
+</ul>
+
+{% block gestion_content %}{% endblock %}
+{% endblock %}
